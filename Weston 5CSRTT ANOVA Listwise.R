@@ -99,12 +99,17 @@ Data.CreateiData.Function <- function(dataset){
 }
 
 data.3x.idata = Data.CreateiData.Function(data.3x.probe)
+data.3x.idata$Age = as.factor(data.3x.idata$Age)
+data.3x.idata$ProbeDuration = as.factor(data.3x.idata$ProbeDuration)
 data.5x.idata = Data.CreateiData.Function(data.5x.probe)
 data.app.idata = Data.CreateiData.Function(data.app.probe)
 
 ## Generate lm for each file ##
 Data.GenerateLM.Function <- function(dataset,idata){
+  dataset = dataset[complete.cases(dataset), ]
   colnames(dataset)[c(1:5)] = c('AnimalID','Site','Strain','Genotype','Gender')
+  dataset$Strain = NULL
+  dataset$AnimalID = NULL
   data.depend = dataset[7:length(colnames(dataset))]
   data.lm = lm(as.matrix(data.depend) ~ 1 + Site + Genotype + Gender, data=dataset)
   data.anova = Anova(data.lm, idata=idata,idesign=~Age*ProbeDuration, type="III")
