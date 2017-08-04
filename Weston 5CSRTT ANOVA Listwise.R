@@ -134,7 +134,7 @@ Data.GenerateLM.Function <- function(dataset,idata){
   dataset$Strain = NULL
   dataset$AnimalID = NULL
   data.depend = dataset[4:length(colnames(dataset))]
-  data.lm = lm(as.matrix(data.depend) ~ 1 + Site + Genotype + Gender, data=dataset)
+  data.lm = lm(as.matrix(data.depend) ~ 1 * Site * Genotype * Gender, data=dataset)
   data.anova = Anova(data.lm, idata=idata,idesign=~Age*ProbeDuration, type="III")
   return(data.anova)
 }
