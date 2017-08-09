@@ -3,10 +3,11 @@ library(tidyverse)
 library(reshape2)
 library(car)
 library(lme4)
-library(nlm3)
+##library(nlm3)
 
 ## Acquire data ##
-raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\PD Reversal.csv')
+##raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\PD Reversal.csv')
+raw.data = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\PD Reversal.csv')
 raw.data$End.Summary...Condition = as.numeric(raw.data$End.Summary...Condition)
 
 
@@ -51,6 +52,7 @@ raw.data = Data.LatencyCalc.Function(raw.data)
 raw.dataclean = raw.data[ ,c(2:8,10,13:16,81,82)]
 
 
+
 ## Separate By Strain ##
 data.3x.4m = raw.dataclean[which((raw.dataclean$Mouse.strain==" 3XTG") & (raw.dataclean$Age..months.=="4")), ]
 data.5x.4m = raw.dataclean[which((raw.dataclean$Mouse.strain==" 5FAD") & (raw.dataclean$Age..months.=="4")), ]
@@ -91,6 +93,13 @@ data.app.10m.list = Data.GenerateMeasureList.Function(data.app.10m)
 ## Transform Data Long to Wide - Listwise Mode ##
 Data.ReshapeLongtoWide.Function = function(dataset){
   colnames(dataset) = c('AnimalID','Genotype','Gender','Age','Day','Measure')
+  dataset = data.frame(dataset, stringsAsFactors = FALSE)
+  dataset$Genotype[dataset$Genotype == " w"] = "w"
+  dataset$Genotype[dataset$Genotype == " t"] = "t"
+  dataset$Genotype = as.factor(dataset$Genotype)
+  #dataset$Gender[dataset$Gender == " F"] = "F"
+  dataset$Gender[dataset$Gender == " M"] = "M"
+  dataset$Gender = as.factor(dataset$Gender)
   dataset$Age = NULL
   data.melt = melt(dataset, id.vars = c('AnimalID','Genotype','Gender','Day'))
   data.cast = dcast(data.melt, AnimalID + Genotype + Gender ~ variable + Day, fun.aggregate = mean, na.rm=TRUE)
@@ -109,16 +118,29 @@ data.5x.10m.list = lapply(data.5x.10m.list, Data.ReshapeLongtoWide.Function)
 data.app.10m.list = lapply(data.app.10m.list, Data.ReshapeLongtoWide.Function)
 
 ## Generate iData ##
-idata = matrix(c(1:10))
+idata = as.data.frame(matrix(c(1:10)))
 colnames(idata) = "Day"
+idata$Day = as.factor(idata$Day)
 
 
 Data.GenerateLMANOVA.Function <- function(dataset,idata){
+  dataset = dataset[complete.cases(dataset), ]
   dataset$AnimalID = NULL
   data.depend = dataset[ ,3:ncol(dataset)]
-  data.lm = lm(as.matrix(data.depend) ~ Genotype * Gender, data=dataset)
+  data.lm = lm(as.matrix(data.depend) ~ Genotype * Gender, data=dataset, na.action = na.omit)
   data.anova = Anova(data.lm, idata=idata,idesign=~Day, type="III")
   return(data.anova)
 }
 
 data.3x.4m.anova = lapply(data.3x.4m.list, Data.GenerateLMANOVA.Function, idata=idata)
+data.3x.7m.anova = lapply(data.3x.7m.list, Data.GenerateLMANOVA.Function, idata=idata)
+data.3x.10m.anova = lapply(data.3x.10m.list, Data.GenerateLMANOVA.Function, idata=idata)
+
+data.5x.4m.anova = lapply(data.5x.4m.list, Data.GenerateLMANOVA.Function, idata=idata)
+data.5x.7m.anova = lapply(data.5x.7m.list, Data.GenerateLMANOVA.Function, idata=idata)
+data.5x.10m.anova = lapply(data.5x.10m.list, Data.GenerateLMANOVA.Function, idata=idata)
+
+data.app.4m.anova = lapply(data.app.4m.list, Data.GenerateLMANOVA.Function, idata=idata)
+data.app.7m.anova = lapply(data.app.7m.list, Data.GenerateLMANOVA.Function, idata=idata)
+data.app.10m.anova = lapply(data.app.10m.list, Data.GenerateLMANOVA.Function, idata=idata)
+
