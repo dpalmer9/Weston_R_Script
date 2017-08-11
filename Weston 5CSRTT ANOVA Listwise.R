@@ -2,15 +2,16 @@
 library(tidyverse)
 library(reshape2)
 library(car)
-library(lme4)
-library(nlm3)
+#library(lme4)
+#library(nlm3)
 
 
 ## Parameters ##
 
 
 ## Acquire data ##
-raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\FiveChoiceProbe.csv')
+#raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\FiveChoiceProbe.csv')
+raw.data = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\FiveChoiceProbe.csv')
 
 
 ## Separate By Strain ##
@@ -154,3 +155,81 @@ data.3x.list.probe.lm = lapply(data.3x.list.probe.lm, Data.GenerateLM.Function, 
 data.5x.list.probe.lm = lapply(data.5x.list.probe.lm, Data.GenerateLM.Function, idata=data.5x.idata)
 
 data.app.list.probe.lm = lapply(data.app.list.probe.lm, Data.GenerateLM.Function, idata=data.app.idata)
+
+
+## Vigilance Configuration ##
+Data.SeparateVigilance.Function <- function(dataset, genotype, age="NA", sex="NA"){
+  dataset$Age..months. = as.character(dataset$Age..months.)
+  if(genotype == "w"){
+    new.dataset = dataset[which(dataset$Genotype == "w"), ]
+  }else if(genotype == "t"){
+    new.dataset = dataset[which(dataset$Genotype == "t"), ]
+  }
+  if(age == "4"){
+    new.dataset = dataset[which(new.dataset$Age..months. == "4"), ]
+  }else if(age == "7"){
+    new.dataset = dataset[which(new.dataset$Age..months. == "7"), ]
+  }else if(age == "10"){
+    new.dataset = dataset[which(new.dataset$Age..months. == "10"), ]
+  }
+  if(sex == "F"){
+    new.dataset = dataset[which(new.dataset$Gender == "F"), ]
+  }else if(sex == "M"){
+    new.dataset = dataset[which(new.dataset$Gender == "M"), ]
+  }
+  datalist = list()
+  datalist$acc = new.dataset[ ,c(3,9,29,39,49,59,69)]
+  datalist$omit = new.dataset[ ,c(3,9,81,91,101,111,121)]
+  return(datalist)
+  
+  #datalist = 
+} 
+
+vig.3x.wt.m.4 = Data.SeparateVigilance.Function(data.3x, "w", "4","M")
+vig.3x.wt.m.7 = Data.SeparateVigilance.Function(data.3x, "w", "7","M")
+vig.3x.wt.m.10 = Data.SeparateVigilance.Function(data.3x, "w", "10","M")
+
+vig.3x.tg.m.4 = Data.SeparateVigilance.Function(data.3x, "t", "4","M")
+vig.3x.tg.m.7 = Data.SeparateVigilance.Function(data.3x, "t", "7","M")
+vig.3x.tg.m.10 = Data.SeparateVigilance.Function(data.3x, "t", "10","M")
+
+vig.5x.wt.m.4 = Data.SeparateVigilance.Function(data.5x, "w", "4","M")
+vig.5x.wt.m.7 = Data.SeparateVigilance.Function(data.5x, "w", "7","M")
+vig.5x.wt.m.10 = Data.SeparateVigilance.Function(data.5x, "w", "10","M")
+
+vig.5x.tg.m.4 = Data.SeparateVigilance.Function(data.5x, "t", "4","M")
+vig.5x.tg.m.7 = Data.SeparateVigilance.Function(data.5x, "t", "7","M")
+vig.5x.tg.m.10 = Data.SeparateVigilance.Function(data.5x, "t", "10","M")
+
+vig.app.wt.m.4 = Data.SeparateVigilance.Function(data.app, "w", "4","M")
+vig.app.wt.m.7 = Data.SeparateVigilance.Function(data.app, "w", "7","M")
+vig.app.wt.m.10 = Data.SeparateVigilance.Function(data.app, "w", "10","M")
+
+vig.app.tg.m.4 = Data.SeparateVigilance.Function(data.app, "t", "4","M")
+vig.app.tg.m.7 = Data.SeparateVigilance.Function(data.app, "t", "7","M")
+vig.app.tg.m.10 = Data.SeparateVigilance.Function(data.app, "t", "10","M")
+
+vig.3x.wt.f.4 = Data.SeparateVigilance.Function(data.3x, "w", "4","F")
+vig.3x.wt.f.7 = Data.SeparateVigilance.Function(data.3x, "w", "7","F")
+vig.3x.wt.f.10 = Data.SeparateVigilance.Function(data.3x, "w", "10","F")
+
+vig.3x.tg.f.4 = Data.SeparateVigilance.Function(data.3x, "t", "4","F")
+vig.3x.tg.f.7 = Data.SeparateVigilance.Function(data.3x, "t", "7","F")
+vig.3x.tg.f.10 = Data.SeparateVigilance.Function(data.3x, "t", "10","F")
+
+vig.5x.wt.f.4 = Data.SeparateVigilance.Function(data.5x, "w", "4","F")
+vig.5x.wt.f.7 = Data.SeparateVigilance.Function(data.5x, "w", "7","F")
+vig.5x.wt.f.10 = Data.SeparateVigilance.Function(data.5x, "w", "10","F")
+
+vig.5x.tg.f.4 = Data.SeparateVigilance.Function(data.5x, "t", "4","F")
+vig.5x.tg.f.7 = Data.SeparateVigilance.Function(data.5x, "t", "7","F")
+vig.5x.tg.f.10 = Data.SeparateVigilance.Function(data.5x, "t", "10","F")
+
+vig.app.wt.f.4 = Data.SeparateVigilance.Function(data.app, "w", "4","F")
+vig.app.wt.f.7 = Data.SeparateVigilance.Function(data.app, "w", "7","F")
+vig.app.wt.f.10 = Data.SeparateVigilance.Function(data.app, "w", "10","F")
+
+vig.app.tg.f.4 = Data.SeparateVigilance.Function(data.app, "t", "4","F")
+vig.app.tg.f.7 = Data.SeparateVigilance.Function(data.app, "t", "7","F")
+vig.app.tg.f.10 = Data.SeparateVigilance.Function(data.app, "t", "10","F")
+
