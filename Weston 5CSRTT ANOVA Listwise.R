@@ -10,8 +10,7 @@ library(car)
 
 
 ## Acquire data ##
-#raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\FiveChoiceProbe.csv')
-raw.data = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\FiveChoiceProbe.csv')
+raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\FiveChoiceProbe.csv')
 
 
 ## Separate By Strain ##
@@ -67,7 +66,7 @@ data.app.probe.corrlat = data.app.probe[c(1:7,15)]
 data.app.list.probe = ls(pattern="data.app.probe.")
 
 ## Format Data Long to Wide ##
-Data.SpreadLM.Function <- function(dataset){
+Data.Spread.Function <- function(dataset){
   data.melt = melt(dataset, id.vars = c("AnimalID","Site","Strain","Genotype","Gender","Age","ProbeDuration"))
   data.melt$Age = as.character(data.melt$Age)
   data.melt$Age[data.melt$Age == "4"] = "04"
@@ -78,32 +77,18 @@ Data.SpreadLM.Function <- function(dataset){
   return(data.cast)
 }
 
-Data.SpreadREML.Function <- function(dataset){
-  data.melt = melt(dataset, id.vars = c("AnimalID","Site","Strain","Genotype","Gender","Age","ProbeDuration"), na.rm=FALSE)
-  data.melt$Age = as.character(data.melt$Age)
-  data.melt$Age[data.melt$Age == "4"] = "04"
-  data.melt$Age[data.melt$Age == "7"] = "07"
-  data.melt$Age[data.melt$Age == "13_15"] = "13"
-  data.melt$value = as.numeric(data.melt$value)
-  return(data.melt)
+data.3x.list.probe = lapply(mget(data.3x.list.probe), Data.Spread.Function)
+for(a in 1:length(data.3x.list.probe)){
+  assign(names(data.3x.list.probe)[a], as.data.frame(data.3x.list.probe[a]))
 }
-
-data.3x.list.probe.lm = lapply(mget(data.3x.list.probe), Data.SpreadLM.Function)
-#for(a in 1:length(data.3x.list.probe)){
-  #assign(names(data.3x.list.probe)[a], as.data.frame(data.3x.list.probe[a]))
-#}
-data.5x.list.probe.lm = lapply(mget(data.5x.list.probe), Data.SpreadLM.Function)
-#for(a in 1:length(data.5x.list.probe)){
-  #assign(names(data.5x.list.probe)[a], as.data.frame(data.5x.list.probe[a]))
-#}
-data.app.list.probe.lm = lapply(mget(data.app.list.probe), Data.SpreadLM.Function)
-#for(a in 1:length(data.app.list.probe)){
-  #assign(names(data.app.list.probe)[a], as.data.frame(data.app.list.probe[a]))
-#}
-
-data.3x.list.probe.reml = lapply(mget(data.3x.list.probe), Data.SpreadREML.Function)
-data.5x.list.probe.reml = lapply(mget(data.5x.list.probe), Data.SpreadREML.Function)
-data.app.list.probe.reml = lapply(mget(data.app.list.probe), Data.SpreadREML.Function)
+data.5x.list.probe = lapply(mget(data.5x.list.probe), Data.Spread.Function)
+for(a in 1:length(data.5x.list.probe)){
+  assign(names(data.5x.list.probe)[a], as.data.frame(data.5x.list.probe[a]))
+}
+data.app.list.probe = lapply(mget(data.app.list.probe), Data.Spread.Function)
+for(a in 1:length(data.app.list.probe)){
+  assign(names(data.app.list.probe)[a], as.data.frame(data.app.list.probe[a]))
+}
 ## Generate iData ##
 Data.CreateiData.Function <- function(dataset){
   idata = unique(dataset[c('Age','ProbeDuration')])
@@ -135,27 +120,28 @@ Data.GenerateLM.Function <- function(dataset,idata){
   dataset$Strain = NULL
   dataset$AnimalID = NULL
   data.depend = dataset[4:length(colnames(dataset))]
-  data.lm = lm(as.matrix(data.depend) ~ 1 * Site * Genotype * Gender, data=dataset)
-  data.anova = Anova(data.lm, idata=idata,idesign=~Age*ProbeDuration, type="III")
-  return(data.anova)
+  data.lm = lm(as.matrix(data.depend) ~ 1 + Site * Genotype * Gender, data=dataset)
+  #data.anova = Anova(data.lm, idata=idata,idesign=~Age*ProbeDuration, type="III")
+  return(data.lm)
+  #return(data.anova)
 }
- 
+
 ## Generate lm for each file - REML Function ##
-Data.GenerateREML.Function <- function(dataset){
-  dataset$variable = NULL
+Data.GenerateREML.Function <- function(dataset, idata){
+  colnames(dataset)[c(1:5)] = c('AnimalID','Site','Strain','Genotype','Gender')
   dataset$Strain = NULL
-  data.reml = lmer(value~Site + Genotype + Gender + (1|Age) + (1|ProbeDuration), data=dataset, REML = FALSE)
-  data.anova = Anova(data.reml)
+  data.depend = dataset[5:length(colnames(dataset))]
+  data.reml = lmer(as.matrix(data.depend)~Site + Genotype + Gender + (1|AnimalID), data=dataset, REML = FALSE)
+  data.anova = Anova(data.reml, idata=idata,idesign=~Age*ProbeDuration)
   return(data.anova)
 }
 
-## Pass ANOVA functions through lists ##
-data.3x.list.probe.lm = lapply(data.3x.list.probe.lm, Data.GenerateLM.Function, idata=data.3x.idata)
+## Pass ANOVA function through lists ##
+data.3x.list.probe = lapply(data.3x.list.probe, Data.GenerateLM.Function, idata=data.3x.idata)
 
-data.5x.list.probe.lm = lapply(data.5x.list.probe.lm, Data.GenerateLM.Function, idata=data.5x.idata)
+data.5x.list.probe = lapply(data.5x.list.probe, Data.GenerateLM.Function, idata=data.5x.idata)
 
-data.app.list.probe.lm = lapply(data.app.list.probe.lm, Data.GenerateLM.Function, idata=data.app.idata)
-
+data.app.list.probe = lapply(data.app.list.probe, Data.GenerateLM.Function, idata=data.app.idata)
 
 ## Vigilance Configuration ##
 Data.SeparateVigilance.Function <- function(dataset, genotype, age="NA", sex="NA"){
