@@ -12,9 +12,11 @@ library(car)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+options(contrasts = c('contr.sum','contr.poly'))
 ## Acquire data ##
-##raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\PD Reversal.csv')
-raw.data = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\PD Reversal.csv')
+raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\PD Reversal.csv')
+#raw.data = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\PD Reversal.csv')
 raw.data$End.Summary...Condition = as.numeric(raw.data$End.Summary...Condition)
 
 

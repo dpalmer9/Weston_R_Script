@@ -9,12 +9,15 @@ library(tidyverse)
 library(reshape2)
 library(car)
 library(lme4)
+
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+options(contrasts = c('contr.sum','contr.poly'))
 ## Acquire data ##
-##raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\FiveChoiceProbe.csv')
-raw.data = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\FiveChoiceProbe.csv')
+raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\FiveChoiceProbe.csv')
+#raw.data = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\FiveChoiceProbe.csv')
 
 ## Separate By Strain ##
 data.3x = raw.data[which(raw.data$Mouse.strain=="3XTG"), ]

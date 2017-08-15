@@ -11,7 +11,7 @@ library(car)
 
 ## Acquire data ##
 raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\FiveChoiceProbe.csv')
-
+#raw.data = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\FiveChoiceProbe.csv')
 
 ## Separate By Strain ##
 data.3x = raw.data[which(raw.data$Mouse.strain=="3XTG"), ]
@@ -120,15 +120,15 @@ Data.GenerateLM.Function <- function(dataset,idata){
   dataset$Strain = NULL
   dataset$AnimalID = NULL
   data.depend = dataset[4:length(colnames(dataset))]
-  data.lm = lm(as.matrix(data.depend) ~ 1 + Site * Genotype * Gender, data=dataset)
+  data.lm = lm(as.matrix(data.depend) ~ 1+ Site * Genotype * Gender, data=dataset)
   #data.anova = Anova(data.lm, idata=idata,idesign=~Age*ProbeDuration, type="III")
   return(data.lm)
-  #return(data.anova)
 }
 
 ## Generate lm for each file - REML Function ##
 Data.GenerateREML.Function <- function(dataset, idata){
   colnames(dataset)[c(1:5)] = c('AnimalID','Site','Strain','Genotype','Gender')
+  dataset = melt(dataset, idvars = c('AnimalID','Site','Strain','Genotype','Gender'))
   dataset$Strain = NULL
   data.depend = dataset[5:length(colnames(dataset))]
   data.reml = lmer(as.matrix(data.depend)~Site + Genotype + Gender + (1|AnimalID), data=dataset, REML = FALSE)
@@ -165,7 +165,13 @@ Data.SeparateVigilance.Function <- function(dataset, genotype, age="NA", sex="NA
   }
   datalist = list()
   datalist$acc = new.dataset[ ,c(3,9,29,39,49,59,69)]
+  colnames(datalist$acc) = c('AnimalID','ProbeDur','Bin10','Bin20','Bin30','Bin40','Bin50')
+  datalist$acc = melt(datalist$acc, id.vars = c('AnimalID','ProbeDur'))
+  datalist$acc = dcast(datalist$acc, AnimalID ~ ProbeDur + variable, fun.aggregate = mean, na.rm=TRUE)
   datalist$omit = new.dataset[ ,c(3,9,81,91,101,111,121)]
+  colnames(datalist$omit) = c('AnimalID','ProbeDur','Bin10','Bin20','Bin30','Bin40','Bin50')
+  datalist$omit = melt(datalist$omit, id.vars = c('AnimalID','ProbeDur'))
+  datalist$omit = dcast(datalist$omit, AnimalID ~ ProbeDur + variable, fun.aggregate = mean, na.rm=TRUE)
   return(datalist)
   
   #datalist = 
@@ -218,4 +224,5 @@ vig.app.wt.f.10 = Data.SeparateVigilance.Function(data.app, "w", "10","F")
 vig.app.tg.f.4 = Data.SeparateVigilance.Function(data.app, "t", "4","F")
 vig.app.tg.f.7 = Data.SeparateVigilance.Function(data.app, "t", "7","F")
 vig.app.tg.f.10 = Data.SeparateVigilance.Function(data.app, "t", "10","F")
+
 
