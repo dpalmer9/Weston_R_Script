@@ -2,6 +2,7 @@
 library(tidyverse)
 library(reshape2)
 library(car)
+library(mice)
 #library(lme4)
 #library(nlm3)
 
@@ -43,7 +44,7 @@ data.3x.probe.premature = data.3x.probe[c(1:7,12)]
 data.3x.probe.persev = data.3x.probe[c(1:7,13)]
 data.3x.probe.rewardlat = data.3x.probe[c(1:7,14)]
 data.3x.probe.corrlat = data.3x.probe[c(1:7,15)]
-data.3x.list.probe = ls(pattern="data.3x.probe.")
+data.3x.list.probe = mget(ls(pattern="data.3x.probe."))
 
 data.5x.probe.totaltime = data.5x.probe[c(1:7,8)]
 data.5x.probe.totaltrial = data.5x.probe[c(1:7,9)]
@@ -53,7 +54,7 @@ data.5x.probe.premature = data.5x.probe[c(1:7,12)]
 data.5x.probe.persev = data.5x.probe[c(1:7,13)]
 data.5x.probe.rewardlat = data.5x.probe[c(1:7,14)]
 data.5x.probe.corrlat = data.5x.probe[c(1:7,15)]
-data.5x.list.probe = ls(pattern="data.5x.probe.")
+data.5x.list.probe = mget(ls(pattern="data.5x.probe."))
 
 data.app.probe.totaltime = data.app.probe[c(1:7,8)]
 data.app.probe.totaltrial = data.app.probe[c(1:7,9)]
@@ -63,7 +64,7 @@ data.app.probe.premature = data.app.probe[c(1:7,12)]
 data.app.probe.persev = data.app.probe[c(1:7,13)]
 data.app.probe.rewardlat = data.app.probe[c(1:7,14)]
 data.app.probe.corrlat = data.app.probe[c(1:7,15)]
-data.app.list.probe = ls(pattern="data.app.probe.")
+data.app.list.probe = mget(ls(pattern="data.app.probe."))
 
 ## Format Data Long to Wide ##
 Data.Spread.Function <- function(dataset){
@@ -77,15 +78,15 @@ Data.Spread.Function <- function(dataset){
   return(data.cast)
 }
 
-data.3x.list.probe = lapply(mget(data.3x.list.probe), Data.Spread.Function)
+data.3x.list.melt = lapply(data.3x.list.probe, Data.Spread.Function)
 for(a in 1:length(data.3x.list.probe)){
   assign(names(data.3x.list.probe)[a], as.data.frame(data.3x.list.probe[a]))
 }
-data.5x.list.probe = lapply(mget(data.5x.list.probe), Data.Spread.Function)
+data.5x.list.melt = lapply(data.5x.list.probe, Data.Spread.Function)
 for(a in 1:length(data.5x.list.probe)){
   assign(names(data.5x.list.probe)[a], as.data.frame(data.5x.list.probe[a]))
 }
-data.app.list.probe = lapply(mget(data.app.list.probe), Data.Spread.Function)
+data.app.list.melt = lapply(data.app.list.probe, Data.Spread.Function)
 for(a in 1:length(data.app.list.probe)){
   assign(names(data.app.list.probe)[a], as.data.frame(data.app.list.probe[a]))
 }
@@ -121,27 +122,57 @@ Data.GenerateLM.Function <- function(dataset,idata){
   dataset$AnimalID = NULL
   data.depend = dataset[4:length(colnames(dataset))]
   data.lm = lm(as.matrix(data.depend) ~ 1+ Site * Genotype * Gender, data=dataset)
-  #data.anova = Anova(data.lm, idata=idata,idesign=~Age*ProbeDuration, type="III")
-  return(data.lm)
-}
-
-## Generate lm for each file - REML Function ##
-Data.GenerateREML.Function <- function(dataset, idata){
-  colnames(dataset)[c(1:5)] = c('AnimalID','Site','Strain','Genotype','Gender')
-  dataset = melt(dataset, idvars = c('AnimalID','Site','Strain','Genotype','Gender'))
-  dataset$Strain = NULL
-  data.depend = dataset[5:length(colnames(dataset))]
-  data.reml = lmer(as.matrix(data.depend)~Site + Genotype + Gender + (1|AnimalID), data=dataset, REML = FALSE)
-  data.anova = Anova(data.reml, idata=idata,idesign=~Age*ProbeDuration)
+  data.anova = Anova(data.lm, idata=idata,idesign=~Age*ProbeDuration, type="III")
   return(data.anova)
 }
 
+## Generate lm for each file - REML Function ##
+Data.GenerateMI.Function <- function(dataset){
+  colnames(dataset)[c(1:5)] = c('AnimalID','Site','Strain','Genotype','Gender')
+  dataset$Strain = NULL
+  dataset$AnimalID = NULL
+  dataset.mi = mice(dataset, m=5, maxit=50, method='pmm',seed=500)
+  dataset.1 = complete(dataset.mi, 1)
+  data.lm.1 = lm(as.matrix(dataset[4:length(colnames(dataset.1))]) ~ 1 + Site * Genotype * Gender, data=dataset.1)
+  dataset.2 = complete(dataset.mi, 2)
+  data.lm.2 = lm(as.matrix(dataset[4:length(colnames(dataset.2))]) ~ 1 + Site * Genotype * Gender, data=dataset.2)
+  dataset.3 = complete(dataset.mi, 3)
+  data.lm.3 = lm(as.matrix(dataset[4:length(colnames(dataset.3))]) ~ 1 + Site * Genotype * Gender, data=dataset.3)
+  dataset.4 = complete(dataset.mi, 4)
+  data.lm.4 = lm(as.matrix(dataset[4:length(colnames(dataset.4))]) ~ 1 + Site * Genotype * Gender, data=dataset.4)
+  dataset.5 = complete(dataset.mi, 5)
+  data.lm.5 = lm(as.matrix(dataset[4:length(colnames(dataset.5))]) ~ 1 + Site * Genotype * Gender, data=dataset.5)
+  data.mira = as.mira(list(data.lm.1,data.lm.2,data.lm.3,data.lm.4,data.lm.5))
+  dataset.pool = pool(data.mira)
+  dataset.fit = with(data= dataset.mi, exp = lm(as.matrix(dataset[4:length(colnames(dataset.mi))]) ~ 1 + Site * Genotype * Gender))
+  dataset.pool2 = pool(dataset.fit)
+  testlist = list(data.lm.1,data.lm.2,data.lm.3,data.lm.4,data.lm.5)
+  dataset.anova = miceadds::mi.anova(mi.res=dataset.mi, formula = "as.matrix(dataset[4:length(colnames(dataset.mi))]) ~ 1 + Site * Genotype * Gender", type=3)
+  return(data.lm.5)
+}
+
+Data.GenerateMI.Function2 <- function(dataset){
+  colnames(dataset)[c(1:5)] = c('AnimalID','Site','Strain','Genotype','Gender')
+  dataset.melt = melt(dataset, id.vars = c('AnimalID','Site','Strain','Genotype','Gender'))
+  measure.list = as.data.frame(stringr::str_split_fixed(dataset.melt$variable, "_", 3))
+  dataset.melt$Age = measure.list$V2
+  dataset.melt$Age = as.factor(dataset.melt$Age)
+  dataset.melt$ProbeDur = measure.list$V3
+  dataset.melt$ProbeDur = as.factor(dataset.melt$ProbeDur)
+  dataset.fixed = dataset.melt[ ,c(2,4,5,8,9,7)]
+  colnames(dataset.fixed) = c('Site','Genotype','Sex','Age','ProbeDur','Measure')
+  dataset.mi = mice(dataset.fixed, m=5, maxit=50, method='pmm',seed=500)
+  #dataset.fit = with(data= dataset.mi, exp = lmer(Measure ~ Genotype + Sex + Site + (1|Age) + (1|ProbeDur)))
+  #dataset.pool = pool(dataset.fit)
+  return(dataset.mi)
+}
+
 ## Pass ANOVA function through lists ##
-data.3x.list.probe = lapply(data.3x.list.probe, Data.GenerateLM.Function, idata=data.3x.idata)
+data.3x.list.lmanova = lapply(data.3x.list.melt, Data.GenerateLM.Function, idata=data.3x.idata)
 
-data.5x.list.probe = lapply(data.5x.list.probe, Data.GenerateLM.Function, idata=data.5x.idata)
+data.5x.list.lmanova = lapply(data.5x.list.melt, Data.GenerateLM.Function, idata=data.5x.idata)
 
-data.app.list.probe = lapply(data.app.list.probe, Data.GenerateLM.Function, idata=data.app.idata)
+data.app.list.lmanova = lapply(data.app.list.melt, Data.GenerateLM.Function, idata=data.app.idata)
 
 ## Vigilance Configuration ##
 Data.SeparateVigilance.Function <- function(dataset, genotype, age="NA", sex="NA"){
