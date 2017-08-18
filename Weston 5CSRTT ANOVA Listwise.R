@@ -11,6 +11,8 @@ library(mice)
 
 
 ## Acquire data ##
+options(scipen=100)
+options(contrasts = c('contr.sum','contr.poly'))
 raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\FiveChoiceProbe.csv')
 #raw.data = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\FiveChoiceProbe.csv')
 
@@ -74,7 +76,7 @@ Data.Spread.Function <- function(dataset){
   data.melt$Age[data.melt$Age == "7"] = "07"
   data.melt$Age[data.melt$Age == "13_15"] = "13"
   data.melt$value = as.numeric(data.melt$value)
-  data.cast = dcast(data.melt, AnimalID + Site + Strain + Genotype + Gender ~ variable + Age + ProbeDuration, fun.aggregate = mean, na.rm=TRUE, value.var="value")
+  data.cast = dcast(data.melt, AnimalID + Site + Strain + Genotype + Gender ~ Age + ProbeDuration, fun.aggregate = mean, na.rm=TRUE, value.var="value")
   return(data.cast)
 }
 
@@ -127,28 +129,87 @@ Data.GenerateLM.Function <- function(dataset,idata){
 }
 
 ## Generate lm for each file - REML Function ##
-Data.GenerateMI.Function <- function(dataset){
+Data.GenerateMI.Function <- function(dataset,idata){
+  dep_list = c('04_0600ms','04_0800ms','04_1000ms','04_1500ms','07_0600ms','07_0800ms','07_1000ms','07_1500ms','10_0600ms','10_0800ms','10_1000ms','10_1500ms')
   colnames(dataset)[c(1:5)] = c('AnimalID','Site','Strain','Genotype','Gender')
   dataset$Strain = NULL
   dataset$AnimalID = NULL
   dataset.mi = mice(dataset, m=5, maxit=50, method='pmm',seed=500)
   dataset.1 = complete(dataset.mi, 1)
-  data.lm.1 = lm(as.matrix(dataset[4:length(colnames(dataset.1))]) ~ 1 + Site * Genotype * Gender, data=dataset.1)
+  data.lm.1 = lm(as.matrix(dataset.1[4:length(colnames(dataset.1))]) ~ 1 + Site * Genotype * Gender, data=dataset.1)
+  dataset.anova.1 = Anova(data.lm.1, idata=idata,idesign=~Age*ProbeDuration, type="III")
+  dataset.summary.1 = summary(dataset.anova.1, multivariate=FALSE)
+  dataset.anovasheet.1 = as.matrix(dataset.summary.1$univariate.tests)
+  
   dataset.2 = complete(dataset.mi, 2)
-  data.lm.2 = lm(as.matrix(dataset[4:length(colnames(dataset.2))]) ~ 1 + Site * Genotype * Gender, data=dataset.2)
+  data.lm.2 = lm(as.matrix(dataset.2[4:length(colnames(dataset.2))]) ~ 1 + Site * Genotype * Gender, data=dataset.2)
+  dataset.anova.2 = Anova(data.lm.2, idata=idata,idesign=~Age*ProbeDuration, type="III")
+  dataset.summary.2 = summary(dataset.anova.2, multivariate=FALSE)
+  dataset.anovasheet.2 = as.matrix(dataset.summary.2$univariate.tests)
+  
   dataset.3 = complete(dataset.mi, 3)
-  data.lm.3 = lm(as.matrix(dataset[4:length(colnames(dataset.3))]) ~ 1 + Site * Genotype * Gender, data=dataset.3)
+  data.lm.3 = lm(as.matrix(dataset.3[4:length(colnames(dataset.3))]) ~ 1 + Site * Genotype * Gender, data=dataset.3)
+  dataset.anova.3 = Anova(data.lm.3, idata=idata,idesign=~Age*ProbeDuration, type="III")
+  dataset.summary.3 = summary(dataset.anova.3, multivariate=FALSE)
+  dataset.anovasheet.3 = as.matrix(dataset.summary.3$univariate.tests)
+  
   dataset.4 = complete(dataset.mi, 4)
-  data.lm.4 = lm(as.matrix(dataset[4:length(colnames(dataset.4))]) ~ 1 + Site * Genotype * Gender, data=dataset.4)
+  data.lm.4 = lm(as.matrix(dataset.4[4:length(colnames(dataset.4))]) ~ 1 + Site * Genotype * Gender, data=dataset.4)
+  dataset.anova.4 = Anova(data.lm.4, idata=idata,idesign=~Age*ProbeDuration, type="III")
+  dataset.summary.4 = summary(dataset.anova.4, multivariate=FALSE)
+  dataset.anovasheet.4 = as.matrix(dataset.summary.4$univariate.tests)
+  
   dataset.5 = complete(dataset.mi, 5)
-  data.lm.5 = lm(as.matrix(dataset[4:length(colnames(dataset.5))]) ~ 1 + Site * Genotype * Gender, data=dataset.5)
-  data.mira = as.mira(list(data.lm.1,data.lm.2,data.lm.3,data.lm.4,data.lm.5))
-  dataset.pool = pool(data.mira)
-  dataset.fit = with(data= dataset.mi, exp = lm(as.matrix(dataset[4:length(colnames(dataset.mi))]) ~ 1 + Site * Genotype * Gender))
-  dataset.pool2 = pool(dataset.fit)
-  testlist = list(data.lm.1,data.lm.2,data.lm.3,data.lm.4,data.lm.5)
-  dataset.anova = miceadds::mi.anova(mi.res=dataset.mi, formula = "as.matrix(dataset[4:length(colnames(dataset.mi))]) ~ 1 + Site * Genotype * Gender", type=3)
-  return(data.lm.5)
+  data.lm.5 = lm(as.matrix(dataset.5[4:length(colnames(dataset.5))]) ~ 1 + Site * Genotype * Gender, data=dataset.5)
+  dataset.anova.5 = Anova(data.lm.5, idata=idata,idesign=~Age*ProbeDuration, type="III")
+  dataset.summary.5 = summary(dataset.anova.5, multivariate=FALSE)
+  dataset.anovasheet.5 = as.matrix(dataset.summary.5$univariate.tests)
+  
+  dataset.list = list(data.lm.1,data.lm.2,data.lm.3,data.lm.4,data.lm.5)
+
+  mi.anovafile = data.frame(matrix(nrow=32,ncol=7))
+  colnames(mi.anovafile) = c('Test', "SS-III", 'num df', 'SSE-III', 'den df', 'F', 'p')
+  mi.anovafile$Test = rownames(dataset.anovasheet.1)
+  mi.anovafile$`num df` = as.vector(dataset.anovasheet.1[ ,2])
+  mi.anovafile$`den df` = as.vector(dataset.anovasheet.1[ ,4])
+  
+  mi.ss.merge = data.frame(matrix(nrow=32, ncol=6))
+  mi.ss.merge[ ,1] = as.vector(dataset.anovasheet.1[ ,1])
+  mi.ss.merge[ ,2] = as.vector(dataset.anovasheet.2[ ,1])
+  mi.ss.merge[ ,3] = as.vector(dataset.anovasheet.3[ ,1])
+  mi.ss.merge[ ,4] = as.vector(dataset.anovasheet.4[ ,1])
+  mi.ss.merge[ ,5] = as.vector(dataset.anovasheet.5[ ,1])
+  for(a in 1:nrow(mi.ss.merge)){
+    raw.values = c(mi.ss.merge[a,1], mi.ss.merge[a,2], mi.ss.merge[a,3], mi.ss.merge[a,4], mi.ss.merge[a,5])
+    mi.ss.merge[a,6] = mean(raw.values)
+  mi.anovafile$`SS-III` = as.vector(mi.ss.merge[ ,6])
+  }
+  mi.sse.merge = data.frame(matrix(nrow=32, ncol=6))
+  mi.sse.merge[ ,1] = as.vector(dataset.anovasheet.1[ ,3])
+  mi.sse.merge[ ,2] = as.vector(dataset.anovasheet.2[ ,3])
+  mi.sse.merge[ ,3] = as.vector(dataset.anovasheet.3[ ,3])
+  mi.sse.merge[ ,4] = as.vector(dataset.anovasheet.4[ ,3])
+  mi.sse.merge[ ,5] = as.vector(dataset.anovasheet.5[ ,3])
+  for(a in 1:nrow(mi.sse.merge)){
+    raw.values = c(mi.sse.merge[a,1], mi.sse.merge[a,2], mi.sse.merge[a,3], mi.sse.merge[a,4], mi.sse.merge[a,5])
+    mi.sse.merge[a,6] = mean(raw.values)
+  }
+  mi.anovafile$`SSE-III` = as.vector(mi.sse.merge[ ,6])
+  
+  for(a in 1:nrow(mi.anovafile)){
+    temp.MST = mi.anovafile[a,2] / mi.anovafile[a,3]
+    temp.MSE = mi.anovafile[a,4] / mi.anovafile[a,5]
+    mi.anovafile[a,6] = temp.MST / temp.MSE
+  }
+  for(a in 1:8){
+    mi.anovafile[a,7] = pf(mi.anovafile[a,6], mi.anovafile[a,3], mi.anovafile[a,5], lower.tail = FALSE)
+  }
+  for(a in 9:nrow(mi.anovafile)){
+    temp.epsi = 
+    mi.anovafile[a,7] = pf(mi.anovafile[a,6], mi.anovafile[a,3] * , mi.anovafile[a,5], lower.tail = FALSE)
+  }
+  
+  return(mi.anovafile)
 }
 
 Data.GenerateMI.Function2 <- function(dataset){
