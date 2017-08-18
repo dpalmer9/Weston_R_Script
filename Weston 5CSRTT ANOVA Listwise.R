@@ -3,8 +3,8 @@ library(tidyverse)
 library(reshape2)
 library(car)
 library(mice)
-#library(lme4)
-#library(nlm3)
+library(lme4)
+library(nlme)
 
 
 ## Parameters ##
@@ -130,7 +130,6 @@ Data.GenerateLM.Function <- function(dataset,idata){
 
 ## Generate lm for each file - REML Function ##
 Data.GenerateMI.Function <- function(dataset,idata){
-  dep_list = c('04_0600ms','04_0800ms','04_1000ms','04_1500ms','07_0600ms','07_0800ms','07_1000ms','07_1500ms','10_0600ms','10_0800ms','10_1000ms','10_1500ms')
   colnames(dataset)[c(1:5)] = c('AnimalID','Site','Strain','Genotype','Gender')
   dataset$Strain = NULL
   dataset$AnimalID = NULL
@@ -205,16 +204,18 @@ Data.GenerateMI.Function <- function(dataset,idata){
     mi.anovafile[a,7] = pf(mi.anovafile[a,6], mi.anovafile[a,3], mi.anovafile[a,5], lower.tail = FALSE)
   }
   for(a in 9:nrow(mi.anovafile)){
-    temp.epsi = 
-    mi.anovafile[a,7] = pf(mi.anovafile[a,6], mi.anovafile[a,3] * , mi.anovafile[a,5], lower.tail = FALSE)
+    #temp.epsi = 
+    mi.anovafile[a,7] = pf(mi.anovafile[a,6], mi.anovafile[a,3] , mi.anovafile[a,5], lower.tail = FALSE)
   }
   
   return(mi.anovafile)
 }
 
+
+
 Data.GenerateMI.Function2 <- function(dataset){
-  colnames(dataset)[c(1:5)] = c('AnimalID','Site','Strain','Genotype','Gender')
-  dataset.melt = melt(dataset, id.vars = c('AnimalID','Site','Strain','Genotype','Gender'))
+  colnames(dataset)[c(1:5)] = c('AnimalID','Site','Strain','Genotype','Sex')
+  dataset.melt = melt(dataset, id.vars = c('AnimalID','Site','Strain','Genotype','Sex'))
   measure.list = as.data.frame(stringr::str_split_fixed(dataset.melt$variable, "_", 3))
   dataset.melt$Age = measure.list$V2
   dataset.melt$Age = as.factor(dataset.melt$Age)
@@ -228,12 +229,34 @@ Data.GenerateMI.Function2 <- function(dataset){
   return(dataset.mi)
 }
 
+Data.GenerateMM.Function <- function(dataset){
+  colnames(dataset)[c(1:5)] = c('AnimalID','Site','Strain','Genotype','Gender')
+  dataset.melt = melt(dataset, id.vars = c('AnimalID','Site','Strain','Genotype','Gender'))
+  measure.list = as.data.frame(stringr::str_split_fixed(dataset.melt$variable, "_", 3))
+  dataset.melt$Age = measure.list$V2
+  dataset.melt$Age = as.factor(dataset.melt$Age)
+  dataset.melt$ProbeDur = measure.list$V3
+  dataset.melt$ProbeDur = as.factor(dataset.melt$ProbeDur)
+  dataset.fixed = dataset.melt[ ,c(1,2,4,5,8,9,7)]
+  colnames(dataset.fixed) = c('AnimalID','Site','Genotype','Gender','Age','ProbeDuration','Measure')
+  #data.lmer = lmer(Measure ~ Site * Genotype * Gender * Age * ProbeDuration + (1 |AnimalID) + (1 |Age:AnimalID) + (1 | ProbeDuration:AnimalID), data=dataset, REML=FALSE)
+  data.lme = lme(Measure ~ Site * Genotype * Gender * Age * ProbeDuration, random=list(AnimalID=pdBlocked(list(~1, pdIdent(~Age-1), pdIdent(~ProbeDuration-1)))), method="ML",data=dataset.fixed)
+  data.anova = anova(data.lme)
+  return(data.anova)
+  }
+
 ## Pass ANOVA function through lists ##
 data.3x.list.lmanova = lapply(data.3x.list.melt, Data.GenerateLM.Function, idata=data.3x.idata)
-
 data.5x.list.lmanova = lapply(data.5x.list.melt, Data.GenerateLM.Function, idata=data.5x.idata)
-
 data.app.list.lmanova = lapply(data.app.list.melt, Data.GenerateLM.Function, idata=data.app.idata)
+
+data.3x.list.mimputate = lapply(data.3x.list.melt, Data.GenerateMI.Function, idata=data.3x.idata)
+data.5x.list.mimputate = lapply(data.5x.list.melt, Data.GenerateMI.Function, idata=data.5x.idata)
+data.app.list.mimputate = lapply(data.app.list.melt, Data.GenerateMI.Function, idata=data.app.idata)
+
+data.3x.list.mixedmodelML = lapply(data.3x.list.melt, Data.GenerateMM.Function)
+data.5x.list.mixedmodelML = lapply(data.5x.list.probe, Data.GenerateMM.Function)
+data.app.list.mixedmodelML = lapply(data.app.list.probe, Data.GenerateMM.Function)
 
 ## Vigilance Configuration ##
 Data.SeparateVigilance.Function <- function(dataset, genotype, age="NA", sex="NA"){
