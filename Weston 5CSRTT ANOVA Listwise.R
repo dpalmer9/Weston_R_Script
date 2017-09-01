@@ -344,6 +344,8 @@ vig.app.tg.f.10 = Data.SeparateVigilance.Function(data.app, "t", "10","F")
 SME.Function = function(dataset, idata, measures, within.levels){
   SME.list = list()
   repeated.measure = TRUE
+  both.repeated.present = FALSE
+  dataset = dataset[complete.cases(dataset), ]
   idesign = "~Age*ProbeDuration"
   if(((is.element('Age',measures) == TRUE) & (is.element('ProbeDuration',measures) == FALSE) & (is.element('ProbeDuration',within.levels) == FALSE) & (is.element('Age',within.levels) == FALSE))){
     filter.list = list(6:9,10:13,14:17)
@@ -352,10 +354,21 @@ SME.Function = function(dataset, idata, measures, within.levels){
     new.data.col[ ,6] = apply(dataset[unlist(filter.list[1])], 1, mean, na.rm=TRUE)
     new.data.col[ ,7] = apply(dataset[unlist(filter.list[2])], 1, mean, na.rm=TRUE)
     new.data.col[ ,8] = apply(dataset[unlist(filter.list[3])], 1, mean, na.rm=TRUE)
+    if(is.element('APPPS1',dataset$Strain) == TRUE){
+      new.data.col[ ,9] = apply(dataset[ ,18:21], 1, mean, na.rm=TRUE)
+    }
     dataset = new.data.col
     colnames(dataset) = c('AnimalID','Site','Strain','Genotype','Gender','4Months','7Months','10Months')
-    idesign = '~Age'
-    idesign = as.formula(idesign)
+    idesign = NA
+    idata.edit = factor(c('4Months','7Months','10Months'))
+    idata.edit = as.data.frame(idata.edit)
+    if(is.element('APPPS1',dataset$Strain) == TRUE){
+      colnames(dataset)[9] = "13Months"
+      idata.edit = factor(c('4Months','7Months','10Months', "13Months"))
+      idata.edit = as.data.frame(idata.edit)
+    }
+    #colnames(idata.edit) = "Age"
+    #idesign = as.formula(idesign)
   }
   if(((is.element('Age',measures) == FALSE) & (is.element('ProbeDuration',measures) == TRUE) & (is.element('ProbeDuration',within.levels) == FALSE) & (is.element('Age',within.levels) == FALSE))){
     filter.list = list(c(6,10,14), c(7,11,15), c(8,12,16), c(9,13,17))
@@ -367,8 +380,11 @@ SME.Function = function(dataset, idata, measures, within.levels){
     new.data.col[ ,9] = apply(dataset[unlist(filter.list[4])], 1, mean, na.rm=TRUE)
     dataset = new.data.col
     colnames(dataset) = c('AnimalID','Site','Strain','Genotype','Gender','600ms','800ms','1000ms','1500ms')
-    idesign = '~ProbeDuration'
-    idesign = as.formula(idesign)
+    idata.edit = factor(c('0600ms','0800ms','1000ms','1500ms'))
+    idata.edit = as.data.frame(idata.edit)
+    #colnames(idata.edit) = "ProbeDuration"
+    idesign = NA
+    #idesign = as.formula(idesign)
   }
   if(((is.element('Age',measures) == FALSE) & (is.element('ProbeDuration',measures) == FALSE) & (is.element('ProbeDuration',within.levels) == FALSE) & (is.element('Age',within.levels) == TRUE))){
     filter.list = list(6:9,10:13,14:17)
@@ -377,9 +393,15 @@ SME.Function = function(dataset, idata, measures, within.levels){
     new.data.col[ ,6] = apply(dataset[unlist(filter.list[1])], 1, mean, na.rm=TRUE)
     new.data.col[ ,7] = apply(dataset[unlist(filter.list[2])], 1, mean, na.rm=TRUE)
     new.data.col[ ,8] = apply(dataset[unlist(filter.list[3])], 1, mean, na.rm=TRUE)
+    if(is.element('APPPS1',dataset$Strain) == TRUE){
+      new.data.col[ ,9] = apply(dataset[ ,18:21], 1, mean, na.rm=TRUE)
+    }
     dataset = new.data.col
     idesign = NA
-    colnames(dataset) = c('AnimalID','Site','Strain','Genotype','Gender','4Months','7Months','10Months')
+    colnames(dataset) = c('AnimalID','Site','Strain','Genotype','Gender','04','07','10')
+    if(is.element('APPPS1',dataset$Strain) == TRUE){
+      colnames(dataset)[9] = "13Months"
+    }
     repeated.measure = FALSE
   }
   if(((is.element('Age',measures) == FALSE) & (is.element('ProbeDuration',measures) == FALSE) & (is.element('ProbeDuration',within.levels) == TRUE) & (is.element('Age',within.levels) == FALSE))){
@@ -408,45 +430,53 @@ SME.Function = function(dataset, idata, measures, within.levels){
   if(((is.element('Age',measures) == TRUE) & (is.element('ProbeDuration',measures) == TRUE) & (is.element('Age',within.levels) == FALSE) & (is.element('ProbeDuration',within.levels) == FALSE))){
     idesign = "~Age*ProbeDuration"
     idesign = as.formula(idesign)
-    
+    idata.edit = idata
+    both.repeated.present = TRUE
   }
   if(isTRUE(within.levels == "Gender")){
     filter.list = list('M',"F")
     filter.col = 5
-    idata=NULL
   }else if(isTRUE(within.levels == "Genotype")){
     filter.list = list('w','t')
     filter.col = 4
-    idata=NULL
   }else if(isTRUE(within.levels == "Site")){
     filter.list = list('UOG', 'UWO')
     filter.col = 2
-    idata = NULL
   }else if(isTRUE(within.levels == "Age")){
     if(is.element('ProbeDuration',measures) == TRUE){
       filter.list = list(6:9,10:13,14:17)
-      idata = idata[1:4,2]
-      idata = as.data.frame(idata)
-      colnames(idata) = "ProbeDuration"
+      if(is.element('APPPS1',dataset$Strain) == TRUE){
+        filter.list = list(6:9,10:13,14:17,18:21)
+      }
+      idata.edit = factor(c('0600ms','0800ms','1000ms','1500ms'))
+      idata.edit = as.data.frame(idata.edit)
+      #colnames(idata.edit) = "ProbeDuration"
       idesign = "~ProbeDuration"
       idesign = as.formula(idesign)
     }else{
       filter.list = list(6,7,8)
-      idata = NULL
+      if(is.element('APPPS1',dataset$Strain) == TRUE){
+        filter.list = list(6,7,8,9)
+      }
+      idata.edit = NA
       idesign = NA
     }
     filter.col = NA
   }else if(isTRUE(within.levels == "ProbeDuration")){
     if(is.element('Age',measures) == TRUE){
       filter.list = list(c(6,10,14), c(7,11,15), c(8,12,16), c(9,13,17))
-      idata = idata[c(1:3),1]
-      idata = as.data.frame(idata)
-      colnames(idata) = "Age"
+      idata.edit = factor(c('4Months','7Months','10Months'))
+      if(is.element('APPPS1',dataset$Strain) == TRUE){
+        filter.list = list(c(6,10,14,18), c(7,11,15,19), c(8,12,16,20), c(9,13,17,21))
+        idata.edit = factor(c('4Months','7Months','10Months','13Months'))
+      }
+      idata.edit = as.data.frame(idata.edit)
+      #colnames(idata.edit) = "Age"
       idesign = "~Age"
       idesign = as.formula(idesign)
     }else{
       filter.list = list(6,7,8,9)
-      idata = NULL
+      idata.edit = NA
       idesign= NA
     }
     filter.col = NA
@@ -472,18 +502,34 @@ SME.Function = function(dataset, idata, measures, within.levels){
   measure.string = as.formula(measure.string)
   if((is.na(filter.col) == TRUE) & (repeated.measure == TRUE)){
     for(a in 1:length(filter.list)){
-      data.matrix = as.matrix(dataset[ ,unlist(filter.list[a])])
-      data.lm = lm(measure.string, data = dataset)
-      data.anova = Anova(data.lm, idata=idata,idesign=idesign, type="III")
+      current.filter = unlist(filter.list[a])
+      dataset.anova = dataset[ ,c(1:5, current.filter)]
+      dataset.anova = dataset.anova[complete.cases(dataset.anova), ]
+      data.matrix = as.matrix(dataset.anova[ ,6:ncol(dataset.anova)])
+      data.lm = lm(measure.string, data = dataset.anova)
+      data.anova = Anova(data.lm, idata=idata.edit,idesign= ~idata.edit, type="III")
       data.summary = summary(data.anova, multivariate=FALSE)
       #data.summary = data.summary$univariate.tests
       SME.list[[a]] = data.summary
     }
-  }else if((is.na(filter.col) == FALSE) & (repeated.measure == TRUE)){
+  }else if((is.na(filter.col) == FALSE) & (repeated.measure == TRUE) & (both.repeated.present == FALSE) ){
     for(a in 1:length(filter.list)){
-      data.matrix = as.matrix(dataset[which(dataset[filter.col] == unlist(filter.list[a])), 6:ncol(dataset)])
-      data.lm = lm(measure.string, data = dataset[which(dataset[filter.col] == unlist(filter.list[a])), ])
-      data.anova = Anova(data.lm, idata=idata,idesign=idesign, type="III")
+      dataset.anova = dataset[which(dataset[filter.col] == unlist(filter.list[a])), ]
+      dataset.anova = dataset.anova[complete.cases(dataset.anova), ]
+      data.matrix = as.matrix(dataset.anova[, 6:ncol(dataset.anova)])
+      data.lm = lm(measure.string, data = dataset.anova)
+      data.anova = Anova(data.lm, idata=idata.edit,idesign=~idata.edit, type="III")
+      data.summary = summary(data.anova, multivariate=FALSE)
+      #data.summary = data.summary$univariate.tests
+      SME.list[[a]] = data.summary
+    }
+  }else if((is.na(filter.col) == FALSE) & (repeated.measure == TRUE) & (both.repeated.present == TRUE)){
+    for(a in 1:length(filter.list)){
+      dataset.anova = dataset[which(dataset[filter.col] == unlist(filter.list[a])), ]
+      dataset.anova = dataset.anova[complete.cases(dataset.anova), ]
+      data.matrix = as.matrix(dataset.anova[, 6:ncol(dataset.anova)])
+      data.lm = lm(measure.string, data = dataset.anova)
+      data.anova = Anova(data.lm, idata=idata.edit,idesign=idesign, type="III")
       data.summary = summary(data.anova, multivariate=FALSE)
       #data.summary = data.summary$univariate.tests
       SME.list[[a]] = data.summary
@@ -508,4 +554,47 @@ SME.Function = function(dataset, idata, measures, within.levels){
 }
   
 test2 = SME.Function(data.app.list.melt$data.app.probe.omission, data.app.idata, c('Age'), 'Site')
+
+SME.Function.2 = function(dataset, between.measure,within.measure, within.levels){
+  dataset.complete = dataset[complete.cases(dataset), ]
+  dataset.2 = melt(dataset.complete, id.vars=c('AnimalID','Site','Strain','Genotype','Gender'))
+  dataset.within = as.data.frame(stringr:: str_split_fixed(dataset.2$variable,"_",2))
+  dataset = cbind(dataset.2,dataset.within)
+  dataset = dataset[ ,c(1:5,8:9,7)]
+  colnames(dataset) = c('AnimalID','Site','Strain','Genotype','Gender','Age','ProbeDuration','Measure')
+  
+  SME.list = list()
+  
+  if(isTRUE(within.levels == "Gender")){
+    filter.list = list('M',"F")
+    filter.col = 5
+  }else if(isTRUE(within.levels == "Genotype")){
+    filter.list = list('w','t')
+    filter.col = 4
+  }else if(isTRUE(within.levels == "Site")){
+    filter.list = list('UOG', 'UWO')
+    filter.col = 2
+  }else if(isTRUE(within.levels == "Age")){
+    filter.list = list('04', '07', '10')
+    filter.col = 6
+  }else if(isTRUE(within.levels == "ProbeDuration")){
+    filter.list = list('0600ms', '0800ms', '1000ms', '1500ms')
+    filter.col = 7
+  }
+  ez.anova.text.1 = "ezANOVA("
+  for(a in 1:length(filter.list)){
+    filter.data = dataset[which(dataset[filter.col] == unlist(filter.list[a])), ]
+    if(is.null(between.measure) == TRUE){
+      anova.data = ezANOVA(data=filter.data, wid= AnimalID, dv= Measure, within = parse(text=within.measure) )
+    }else if(is.null(within.measure) == TRUE){
+      anova.data = ezANOVA(data=filter.data, wid= AnimalID, dv= Measure, between = eval(between.measure) )
+    }else{
+      anova.data = ezANOVA(data=filter.data, wid= AnimalID, dv= Measure, between = eval(between.measure), within = eval(within.measure) )
+    }
+    SME.list[[a]] = anova.data
+  }
+  return(SME.list)
+}
+
+SME.data = SME.Function(test , idata= data.3x.idata, measure = c('Genotype'), within.levels = 'Site')
 
