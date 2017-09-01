@@ -6,8 +6,8 @@ library(lme4)
 ##library(nlm3)
 
 ## Acquire data ##
-##raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\PD Reversal.csv')
-raw.data = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\PD Reversal.csv')
+raw.data = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\PD Reversal.csv')
+#raw.data = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\PD Reversal.csv')
 raw.data$End.Summary...Condition = as.numeric(raw.data$End.Summary...Condition)
 
 
@@ -97,8 +97,8 @@ Data.ReshapeLongtoWide.Function = function(dataset){
   dataset$Genotype[dataset$Genotype == " w"] = "w"
   dataset$Genotype[dataset$Genotype == " t"] = "t"
   dataset$Genotype = as.factor(dataset$Genotype)
-  #dataset$Gender[dataset$Gender == " F"] = "F"
   dataset$Gender[dataset$Gender == " M"] = "M"
+  #dataset$Gender[dataset$Gender == " F"] = "F"
   dataset$Gender = as.factor(dataset$Gender)
   dataset$Age = NULL
   data.melt = melt(dataset, id.vars = c('AnimalID','Genotype','Gender','Day'))
@@ -144,3 +144,100 @@ data.app.4m.anova = lapply(data.app.4m.list, Data.GenerateLMANOVA.Function, idat
 data.app.7m.anova = lapply(data.app.7m.list, Data.GenerateLMANOVA.Function, idata=idata)
 data.app.10m.anova = lapply(data.app.10m.list, Data.GenerateLMANOVA.Function, idata=idata)
 
+
+SME.Function.PD = function(dataset, idata, measures, within.levels){
+  SME.list = list()
+  repeated.measure = TRUE
+  dataset = dataset[complete.cases(dataset), ]
+  idesign = "~Day"
+  if((is.element('Day',measures) == FALSE) & (is.element('Day',within.levels) == FALSE)){
+    new.data.col = as.data.frame(matrix(nrow = nrow(dataset),ncol=6))
+    new.data.col[ ,c(1:3)] = dataset[ ,c(1:3)]
+    new.data.col[ ,4] = apply(dataset[ ,c(4:13)], 1, mean, na.rm = TRUE)
+    dataset = new.data.col
+    colnames(dataset) = c('AnimalID','Genotype','Gender','Measure')
+    idesign = NA
+    repeated.measure = FALSE
+  }
+  if((is.element('Day',measures) == TRUE) & (is.element('Day',within.levels) == FALSE)){
+    idesign = "~Age"
+    idesign = as.formula(idesign)
+    idata.edit = idata
+    repeated.measure = TRUE
+  }
+  if((is.element('Day',measures) == FALSE) & (is.element('Day',within.levels) == TRUE)){
+    idesign = NA
+    idata.edit = idata
+    repeated.measure = FALSE
+  }
+  if(isTRUE(within.levels == "Gender")){
+    filter.list = list('M'," F")
+    filter.col = 3
+  }else if(isTRUE(within.levels == "Genotype")){
+    filter.list = list('w','t')
+    filter.col = 2
+  }else if(isTRUE(within.levels == "Day")){
+    filter.list = list(4,5,6,7,8,9,10,11,12,13)
+    idata.edit = NA
+    idesign= NA
+    filter.col = NA
+  }
+  if(is.element('Day',measures) == TRUE){
+    measures = measures[measures != "Day"]
+  }
+  measure.string = "data.matrix ~"
+  if(length(measures) == 0){
+    measure.string = "data.matrix ~ 1"
+  }else{
+    for(a in 1:length(measures)){
+      if((measure.string == "data.matrix ~") == TRUE){
+        measure.string = paste(measure.string,measures[a],sep=" ")
+      }else{
+        measure.string = paste(measure.string,measures[a],sep=" * ")
+      }
+    }
+  }
+  measure.string = as.formula(measure.string)
+  if((is.na(filter.col) == TRUE) & (repeated.measure == TRUE)){
+    for(a in 1:length(filter.list)){
+      current.filter = unlist(filter.list[a])
+      dataset.anova = dataset[ ,c(1:3, current.filter)]
+      dataset.anova = dataset.anova[complete.cases(dataset.anova), ]
+      data.matrix = as.matrix(dataset.anova[ ,6:ncol(dataset.anova)])
+      data.lm = lm(measure.string, data = dataset.anova)
+      data.anova = Anova(data.lm, idata=idata.edit,idesign= ~Day, type="III")
+      data.summary = summary(data.anova, multivariate=FALSE)
+      #data.summary = data.summary$univariate.tests
+      SME.list[[a]] = data.summary
+    }
+  }else if((is.na(filter.col) == FALSE) & (repeated.measure == TRUE)){
+    for(a in 1:length(filter.list)){
+      dataset.anova = dataset[which(dataset[filter.col] == unlist(filter.list[a])), ]
+      dataset.anova = dataset.anova[complete.cases(dataset.anova), ]
+      data.matrix = as.matrix(dataset.anova[, 4:ncol(dataset.anova)])
+      data.lm = lm(measure.string, data = dataset.anova)
+      data.anova = Anova(data.lm, idata=idata.edit,idesign=~Day, type="III")
+      data.summary = summary(data.anova, multivariate=FALSE)
+      #data.summary = data.summary$univariate.tests
+      SME.list[[a]] = data.summary
+    }
+  }else if((is.na(filter.col) == TRUE) & (repeated.measure == FALSE)){
+    for(a in 1:length(filter.list)){
+      data.matrix = as.matrix(dataset[ ,unlist(filter.list[a])])
+      data.lm = lm(measure.string, data = dataset)
+      data.anova = Anova(data.lm, type="III")
+      #data.summary = summary(data.anova, multivariate=FALSE)
+      SME.list[[a]] = data.anova
+    }
+  }else if((is.na(filter.col) == FALSE) & (repeated.measure == FALSE)){
+    for(a in 1:length(filter.list)){
+      data.matrix = as.matrix(dataset[which(dataset[filter.col] == unlist(filter.list[a])), 4])
+      data.lm = lm(measure.string, data = dataset[which(dataset[filter.col] == unlist(filter.list[a])), ])
+      data.anova = Anova(data.lm, type="III")
+      SME.list[[a]] = data.anova
+    }
+  }
+  return(SME.list)
+}
+
+SME.data = SME.Function.PD(data.app.7m.list$corrections, idata = idata, measures = c("Genotype",'Day'), within.levels = "Gender")

@@ -53,6 +53,6 @@ SME.Calculation.Function = function(newSST, newDF1, oldSSEWTH,oldSSEBTW=NULL,old
   return(final.data)
 }
 # Between #
-SME.Calculation.Function(newSST = 137, newDF1 = 1, oldSSEWTH = 11985, oldDFWTH = 201, oldSSEBTW = 12163.7 ,oldDFBTW = 67 ,within.type = "Between", factor.types=1)
+SME.Calculation.Function(newSST = 877, newDF1 = 9, oldSSEWTH = 56741, oldDFWTH = 396, oldSSEBTW = 72.40 ,oldDFBTW = 45 ,within.type = "Between", factor.types=3)
 # Within #
-SME.Calculation.Function(newSST = 0.94735, newDF1 = 1, oldSSEWTH = 8.6754, oldDFWTH = 130, oldSSEBTW = 11.2499 ,oldDFBTW = 65 , within.type = "Within")
+SME.Calculation.Function(newSST = 2117, newDF1 = 1, oldSSEWTH = 39380, oldDFWTH = 360, oldSSEBTW = 43734 ,oldDFBTW = 40 , within.type = "Within")
