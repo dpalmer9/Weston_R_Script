@@ -36,6 +36,7 @@ Data.ColumnName.Fix <- function(dataset){
 data.3x.probe = Data.ColumnName.Fix(data.3x.probe)
 data.5x.probe = Data.ColumnName.Fix(data.5x.probe)
 data.app.probe = Data.ColumnName.Fix(data.app.probe)
+data.app.probe = data.app.probe[which(data.app.probe$Age != "13_15"), ]
 
 ## Separate Data Into Var ##
 data.3x.probe.totaltime = data.3x.probe[c(1:7,8)]
@@ -250,13 +251,13 @@ data.3x.list.lmanova = lapply(data.3x.list.melt, Data.GenerateLM.Function, idata
 data.5x.list.lmanova = lapply(data.5x.list.melt, Data.GenerateLM.Function, idata=data.5x.idata)
 data.app.list.lmanova = lapply(data.app.list.melt, Data.GenerateLM.Function, idata=data.app.idata)
 
-data.3x.list.mimputate = lapply(data.3x.list.melt, Data.GenerateMI.Function, idata=data.3x.idata)
-data.5x.list.mimputate = lapply(data.5x.list.melt, Data.GenerateMI.Function, idata=data.5x.idata)
-data.app.list.mimputate = lapply(data.app.list.melt, Data.GenerateMI.Function, idata=data.app.idata)
+#data.3x.list.mimputate = lapply(data.3x.list.melt, Data.GenerateMI.Function, idata=data.3x.idata)
+#data.5x.list.mimputate = lapply(data.5x.list.melt, Data.GenerateMI.Function, idata=data.5x.idata)
+#data.app.list.mimputate = lapply(data.app.list.melt, Data.GenerateMI.Function, idata=data.app.idata)
 
-data.3x.list.mixedmodelML = lapply(data.3x.list.melt, Data.GenerateMM.Function)
-data.5x.list.mixedmodelML = lapply(data.5x.list.probe, Data.GenerateMM.Function)
-data.app.list.mixedmodelML = lapply(data.app.list.probe, Data.GenerateMM.Function)
+#data.3x.list.mixedmodelML = lapply(data.3x.list.melt, Data.GenerateMM.Function)
+#data.5x.list.mixedmodelML = lapply(data.5x.list.probe, Data.GenerateMM.Function)
+#data.app.list.mixedmodelML = lapply(data.app.list.probe, Data.GenerateMM.Function)
 
 ## Vigilance Configuration ##
 Data.SeparateVigilance.Function <- function(dataset, genotype, age="NA", sex="NA"){
@@ -354,19 +355,19 @@ SME.Function = function(dataset, idata, measures, within.levels){
     new.data.col[ ,6] = apply(dataset[unlist(filter.list[1])], 1, mean, na.rm=TRUE)
     new.data.col[ ,7] = apply(dataset[unlist(filter.list[2])], 1, mean, na.rm=TRUE)
     new.data.col[ ,8] = apply(dataset[unlist(filter.list[3])], 1, mean, na.rm=TRUE)
-    if(is.element('APPPS1',dataset$Strain) == TRUE){
-      new.data.col[ ,9] = apply(dataset[ ,18:21], 1, mean, na.rm=TRUE)
-    }
+    #if(is.element('APPPS1',dataset$Strain) == TRUE){
+      #new.data.col[ ,9] = apply(dataset[ ,18:21], 1, mean, na.rm=TRUE)
+    #}
     dataset = new.data.col
     colnames(dataset) = c('AnimalID','Site','Strain','Genotype','Gender','4Months','7Months','10Months')
     idesign = NA
     idata.edit = factor(c('4Months','7Months','10Months'))
     idata.edit = as.data.frame(idata.edit)
-    if(is.element('APPPS1',dataset$Strain) == TRUE){
-      colnames(dataset)[9] = "13Months"
-      idata.edit = factor(c('4Months','7Months','10Months', "13Months"))
-      idata.edit = as.data.frame(idata.edit)
-    }
+    #if(is.element('APPPS1',dataset$Strain) == TRUE){
+      #colnames(dataset)[9] = "13Months"
+      #idata.edit = factor(c('4Months','7Months','10Months', "13Months"))
+      #idata.edit = as.data.frame(idata.edit)
+    #}
     #colnames(idata.edit) = "Age"
     #idesign = as.formula(idesign)
   }
@@ -383,7 +384,7 @@ SME.Function = function(dataset, idata, measures, within.levels){
     idata.edit = factor(c('0600ms','0800ms','1000ms','1500ms'))
     idata.edit = as.data.frame(idata.edit)
     #colnames(idata.edit) = "ProbeDuration"
-    idesign = NA
+    #idesign = NA
     #idesign = as.formula(idesign)
   }
   if(((is.element('Age',measures) == FALSE) & (is.element('ProbeDuration',measures) == FALSE) & (is.element('ProbeDuration',within.levels) == FALSE) & (is.element('Age',within.levels) == TRUE))){
@@ -393,15 +394,15 @@ SME.Function = function(dataset, idata, measures, within.levels){
     new.data.col[ ,6] = apply(dataset[unlist(filter.list[1])], 1, mean, na.rm=TRUE)
     new.data.col[ ,7] = apply(dataset[unlist(filter.list[2])], 1, mean, na.rm=TRUE)
     new.data.col[ ,8] = apply(dataset[unlist(filter.list[3])], 1, mean, na.rm=TRUE)
-    if(is.element('APPPS1',dataset$Strain) == TRUE){
-      new.data.col[ ,9] = apply(dataset[ ,18:21], 1, mean, na.rm=TRUE)
-    }
+    #if(is.element('APPPS1',dataset$Strain) == TRUE){
+      #new.data.col[ ,9] = apply(dataset[ ,18:21], 1, mean, na.rm=TRUE)
+    #}
     dataset = new.data.col
     idesign = NA
     colnames(dataset) = c('AnimalID','Site','Strain','Genotype','Gender','04','07','10')
-    if(is.element('APPPS1',dataset$Strain) == TRUE){
-      colnames(dataset)[9] = "13Months"
-    }
+    #if(is.element('APPPS1',dataset$Strain) == TRUE){
+      #colnames(dataset)[9] = "13Months"
+    #}
     repeated.measure = FALSE
   }
   if(((is.element('Age',measures) == FALSE) & (is.element('ProbeDuration',measures) == FALSE) & (is.element('ProbeDuration',within.levels) == TRUE) & (is.element('Age',within.levels) == FALSE))){
@@ -445,9 +446,9 @@ SME.Function = function(dataset, idata, measures, within.levels){
   }else if(isTRUE(within.levels == "Age")){
     if(is.element('ProbeDuration',measures) == TRUE){
       filter.list = list(6:9,10:13,14:17)
-      if(is.element('APPPS1',dataset$Strain) == TRUE){
-        filter.list = list(6:9,10:13,14:17,18:21)
-      }
+      #if(is.element('APPPS1',dataset$Strain) == TRUE){
+        #filter.list = list(6:9,10:13,14:17,18:21)
+      #}
       idata.edit = factor(c('0600ms','0800ms','1000ms','1500ms'))
       idata.edit = as.data.frame(idata.edit)
       #colnames(idata.edit) = "ProbeDuration"
@@ -455,9 +456,9 @@ SME.Function = function(dataset, idata, measures, within.levels){
       idesign = as.formula(idesign)
     }else{
       filter.list = list(6,7,8)
-      if(is.element('APPPS1',dataset$Strain) == TRUE){
-        filter.list = list(6,7,8,9)
-      }
+      #if(is.element('APPPS1',dataset$Strain) == TRUE){
+        #filter.list = list(6,7,8,9)
+      #}
       idata.edit = NA
       idesign = NA
     }
@@ -466,10 +467,10 @@ SME.Function = function(dataset, idata, measures, within.levels){
     if(is.element('Age',measures) == TRUE){
       filter.list = list(c(6,10,14), c(7,11,15), c(8,12,16), c(9,13,17))
       idata.edit = factor(c('4Months','7Months','10Months'))
-      if(is.element('APPPS1',dataset$Strain) == TRUE){
-        filter.list = list(c(6,10,14,18), c(7,11,15,19), c(8,12,16,20), c(9,13,17,21))
-        idata.edit = factor(c('4Months','7Months','10Months','13Months'))
-      }
+      #if(is.element('APPPS1',dataset$Strain) == TRUE){
+        #filter.list = list(c(6,10,14,18), c(7,11,15,19), c(8,12,16,20), c(9,13,17,21))
+        #idata.edit = factor(c('4Months','7Months','10Months','13Months'))
+      #}
       idata.edit = as.data.frame(idata.edit)
       #colnames(idata.edit) = "Age"
       idesign = "~Age"
@@ -518,7 +519,7 @@ SME.Function = function(dataset, idata, measures, within.levels){
       dataset.anova = dataset.anova[complete.cases(dataset.anova), ]
       data.matrix = as.matrix(dataset.anova[, 6:ncol(dataset.anova)])
       data.lm = lm(measure.string, data = dataset.anova)
-      data.anova = Anova(data.lm, idata=idata.edit,idesign=~idata.edit, type="III")
+      data.anova = Anova(data.lm, idata=as.data.frame(idata.edit),idesign=~idata.edit, type="III")
       data.summary = summary(data.anova, multivariate=FALSE)
       #data.summary = data.summary$univariate.tests
       SME.list[[a]] = data.summary
@@ -596,5 +597,5 @@ SME.Function.2 = function(dataset, between.measure,within.measure, within.levels
   return(SME.list)
 }
 
-SME.data = SME.Function(test , idata= data.3x.idata, measure = c('Genotype'), within.levels = 'Site')
+SME.Function(data.app.list.melt$data.app.probe.persev , idata= data.app.idata, measure = c('Site','Gender','ProbeDuration'), within.levels = 'Age')
 

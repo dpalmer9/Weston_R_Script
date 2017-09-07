@@ -53,6 +53,16 @@ SME.Calculation.Function = function(newSST, newDF1, oldSSEWTH,oldSSEBTW=NULL,old
   return(final.data)
 }
 # Between #
-SME.Calculation.Function(newSST = 877, newDF1 = 9, oldSSEWTH = 56741, oldDFWTH = 396, oldSSEBTW = 72.40 ,oldDFBTW = 45 ,within.type = "Between", factor.types=3)
+SME.Calculation.Function(newSST = 0.1402, newDF1 = 1, oldSSEWTH = 56741, oldDFWTH = 396, oldSSEBTW = 65.038 ,oldDFBTW = 50 ,within.type = "Between", factor.types=1)
 # Within #
-SME.Calculation.Function(newSST = 2117, newDF1 = 1, oldSSEWTH = 39380, oldDFWTH = 360, oldSSEBTW = 43734 ,oldDFBTW = 40 , within.type = "Within")
+SME.Calculation.Function(newSST = 26.82, newDF1 = 1, oldSSEWTH = 618.52, oldDFWTH = 495, oldSSEBTW = 506.6 ,oldDFBTW = 55 , within.type = "Within")
+
+
+## Boniferroni Correction ##
+Boniferonni.Func <- function(pvalue){
+  alpha1 = 0.05
+  alpha2 = 0.01
+  alpha3 = 0.001
+}
+
+p.adjust(p= 0.000042226 ,method = "bonferroni", n= 2)
