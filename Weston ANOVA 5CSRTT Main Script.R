@@ -68,16 +68,46 @@ Measure.Separation.Function = function(dataset, long.form=0){
 }
 
 # Data Format - Long to Wide ##
-Data.Formatting.Function = function(dataset,m.value){
+Data.Formatting.Function = function(dataset,m.value,datatype){
   for(a in 1:3){
     for(b in 1:m.value){
-      temp.data = dataset[[a]][b]
+      temp.data = as.data.frame(dataset[[a]][[b]])
       colnames(temp.data)[8] = 'Value'
-      data.melt = melt(temp.data, id.vars = c("AnimalID","TestSite","Mouse.Strain","Genotype","Sex","Age.Months","Stimulus.Length"))
-      data.melt$Age = as.character(data.melt$Age)
-      data.melt$Value = as.numeric(data.melt$Value)
-      data.cast = dcast(data.melt, AnimalID + TestSite + Mouse.Strain + Genotype + Sex ~ Age.Months + Stimulus.Length, fun.aggregate = mean, na.rm=TRUE, value.var="Value")
-      dataset[[a]][b] = data.cast
+      if(isTRUE(datatype == 0)){
+        data.cast = dcast(temp.data, AnimalID + TestSite + Mouse.Strain + Genotype + Sex ~ Age.Months + Task, fun.aggregate = mean, na.rm=TRUE, value.var="Value")
+      }else if(isTRUE(datatype == 1)){
+        data.cast = dcast(temp.data, AnimalID + TestSite + Mouse.Strain + Genotype + Sex ~ Age.Months + Stimulus.Length, fun.aggregate = mean, na.rm=TRUE, value.var="Value")
+      }
+      for(c in 6:ncol(data.cast)){
+        colnames(data.cast)[c] = paste('Data',colnames(data.cast)[c],sep=".")
+      }
+      dataset[[a]][[b]] = as.data.frame(data.cast)
+    }
+  }
+  return(dataset)
+}
+
+# Generate iData for Repeated Measure Design (Probe Only) #
+iData.Generate.Function = function(dataset){
+  template.data = dataset[[1]][[1]]
+  idata = unique(template.data[c('Age.Months','Stimulus.Length')])
+  idata = idata[order(idata$Age.Months,idata$Stimulus.Length), ]
+  idata$Age.Months = as.factor(idata$Age.Months)
+  idata$Stimulus.Length = as.factor(idata$Stimulus.Length)
+  return(idata)
+}
+
+# Calculate ANOVA Results #
+Anova.Preparation.Function = function(dataset,idata){
+  for(a in 1:length(dataset)){
+    for(b in 1:length(dataset[[a]])){
+      data.file =dataset[[a]][[b]]
+      data.file = data.file[complete.cases(data.file), ]
+      data.file[ ,c(1,3)] = NULL
+      data.depend = data.file[ ,4:ncol(data.file)]
+      data.lm = lm(as.matrix(data.depend) ~ 1+ TestSite * Genotype * Sex, data=data.file)
+      data.anova = Anova(data.lm, idata=idata,idesign=~Age.Months*Stimulus.Length, type="III")
+      dataset[[a]][[b]] = data.anova
     }
   }
   return(dataset)
@@ -92,6 +122,10 @@ raw.data.pretrain = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedur
 raw.data.acq = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Acquisition Aggregated QC Oct 12 2017 Updated.csv')
 raw.data.probe = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Probe Aggregated QC Oct 12 2017 Updated.csv')
 
+raw.data.pretrain = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Pretrain QC Oct 12 2017 Updated.csv')
+raw.data.acq = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Acquisition Aggregated QC Oct 12 2017 Updated.csv')
+raw.data.probe = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Probe Aggregated QC Oct 12 2017 Updated.csv')
+
 ## Separate each Raw File by Strain ##
 pretrain.separated.data = Strain.Separation.Function(raw.data.pretrain,0)
 acq.separated.data = Strain.Separation.Function(raw.data.acq,0)
@@ -100,10 +134,15 @@ probe.separated.data = Strain.Separation.Function(raw.data.probe,1)
 ## Separate Probe Data by Measure / Get Specific Columns ##
 pretrain.separated.measures = Measure.Separation.Function(pretrain.separated.data,0)
 acq.separated.measures = Measure.Separation.Function(acq.separated.data,0)
-probe.seperated.measures = Measure.Separation.Function(probe.separated.data,1)
+probe.separated.measures = Measure.Separation.Function(probe.separated.data,1)
 
 ## Format Data Long to Wide ##
-pretrain.formatted.data = Data.Formatting.Function(pretrain.separated.measures,1)
-acq.formatted.data = Data.Formatting.Function(acq.separated.measures,1)
-probe.formatted.data = Data.Formatting.Function(probe.seperated.measures,8)
+pretrain.formatted.data = Data.Formatting.Function(pretrain.separated.measures,1,0)
+acq.formatted.data = Data.Formatting.Function(acq.separated.measures,1,1)
+probe.formatted.data = Data.Formatting.Function(probe.separated.measures,8,1)
 
+## Gather iData for Repeated Measures ##
+probe.idata = iData.Generate.Function(probe.separated.measures)
+
+## Conduct ANOVA ##
+probe.anova = Anova.Preparation.Function(probe.formatted.data,probe.idata)
