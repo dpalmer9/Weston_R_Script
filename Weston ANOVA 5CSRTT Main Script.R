@@ -98,7 +98,7 @@ iData.Generate.Function = function(dataset){
 }
 
 # Calculate ANOVA Results #
-Anova.Preparation.Function = function(dataset,idata){
+Anova.Preparation.Probe.Function = function(dataset,idata){
   for(a in 1:length(dataset)){
     for(b in 1:length(dataset[[a]])){
       data.file =dataset[[a]][[b]]
@@ -107,6 +107,42 @@ Anova.Preparation.Function = function(dataset,idata){
       data.depend = data.file[ ,4:ncol(data.file)]
       data.lm = lm(as.matrix(data.depend) ~ 1+ TestSite * Genotype * Sex, data=data.file)
       data.anova = Anova(data.lm, idata=idata,idesign=~Age.Months*Stimulus.Length, type="III")
+      dataset[[a]][[b]] = data.anova
+    }
+  }
+  return(dataset)
+}
+
+Anova.Preparation.Pretrain.Function = function(dataset){
+  final.dataset = list()
+  for(a in 1:length(dataset)){
+    for(b in 1:length(dataset[[a]])){
+      data.file =dataset[[a]][[b]]
+      data.file = data.file[complete.cases(data.file), ]
+      data.file[ ,c(1,3)] = NULL
+      data.depend = data.file[ ,7]
+      data.lm = lm(as.matrix(data.depend) ~ 1+ TestSite * Genotype * Sex, data=data.file)
+      data.anova = Anova(data.lm, type="III")
+      dataset[[a]][[b]] = data.anova
+    }
+  }
+  return(dataset)
+}
+
+Anova.Preparation.Acquisition.Function = function(dataset,trainingstim){
+  final.dataset = list()
+  for(a in 1:length(dataset)){
+    for(b in 1:length(dataset[[a]])){
+      data.file =dataset[[a]][[b]]
+      data.file = data.file[complete.cases(data.file), ]
+      data.file[ ,c(1,3)] = NULL
+      if(trainingstim == 4){
+        data.depend = data.file[ ,5]
+      }else if(trainingstim == 2){
+        data.depend = data.file[ ,4]
+      }
+      data.lm = lm(as.matrix(data.depend) ~ 1+ TestSite * Genotype * Sex, data=data.file)
+      data.anova = Anova(data.lm, type="III")
       dataset[[a]][[b]] = data.anova
     }
   }
@@ -125,6 +161,10 @@ raw.data.probe = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\
 raw.data.pretrain = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Pretrain QC Oct 12 2017 Updated.csv')
 raw.data.acq = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Acquisition Aggregated QC Oct 12 2017 Updated.csv')
 raw.data.probe = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Probe Aggregated QC Oct 12 2017 Updated.csv')
+
+raw.data.pretrain = read.csv('C:\\Users\\dpalmer\\Documents\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Pretrain QC Oct 12 2017 Updated.csv')
+raw.data.acq = read.csv('C:\\Users\\dpalmer\\Documents\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Acquisition Aggregated QC Oct 12 2017 Updated.csv')
+raw.data.probe = read.csv('C:\\Users\\dpalmer\\Documents\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Probe Aggregated QC Oct 12 2017 Updated.csv')
 
 ## Separate each Raw File by Strain ##
 pretrain.separated.data = Strain.Separation.Function(raw.data.pretrain,0)
@@ -145,4 +185,7 @@ probe.formatted.data = Data.Formatting.Function(probe.separated.measures,8,1)
 probe.idata = iData.Generate.Function(probe.separated.measures)
 
 ## Conduct ANOVA ##
-probe.anova = Anova.Preparation.Function(probe.formatted.data,probe.idata)
+pretrain.anova = Anova.Preparation.Pretrain.Function(pretrain.formatted.data)
+acq.4.anova = Anova.Preparation.Acquisition.Function(acq.formatted.data,4)
+acq.2.anova = Anova.Preparation.Acquisition.Function(acq.formatted.data,2)
+probe.anova = Anova.Preparation.Probe.Function(probe.formatted.data,probe.idata)
