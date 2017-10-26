@@ -8,6 +8,7 @@
 #################################################
 
 ## Library ##
+library(plyr)
 library(tidyverse)
 library(reshape2)
 library(car)
@@ -30,47 +31,57 @@ Strain.Separation.Function = function(dataset,long.form=0){
 }
 
 # Separate Into Separate Measures for Each File + Transform # #
-Measure.Separation.Function = function(dataset, long.form=0){
+Measure.Separation.Function = function(dataset, file.type=0){
   new.data = list()
-  if(long.form == 0){
-    new.data$APP$Sessions = dataset$APP
-    new.data$TG5x$Sessions = dataset$TG5x
-    new.data$TG3x$Sessions = dataset$TG3x
-  }else if(long.form == 1){
-    new.data$APP$TotalTime = dataset$APP[ ,c(1:8,10)]
-    new.data$APP$TotalTrials = dataset$APP[ ,c(1:8,11)]
-    new.data$APP$Accuracy = dataset$APP[ ,c(1:8,13)]
-    new.data$APP$Corrections = dataset$APP[ ,c(1:8,12)]
-    new.data$APP$RewardLat = dataset$APP[ ,c(1:8,15)]
-    new.data$APP$CorrectLat = dataset$APP[ ,c(1:8,14)]
+  if(file.type == 1){
+    new.data$APP$Sessions = dataset$APP[ ,c(1:7,9)]
+    new.data$TG5x$Sessions = dataset$TG5x[ ,c(1:7,9)]
+    new.data$TG3x$Sessions = dataset$TG3x[ ,c(1:7,9)]
+  }else if(file.type == 2){
+    new.data$APP$Sessions = dataset$APP[ ,c(2:9)]
+    new.data$TG5x$Sessions = dataset$TG5x[ ,c(2:9)]
+    new.data$TG3x$Sessions = dataset$TG3x[ ,c(2:9)]
+  }else if(file.type == 3){
+    new.data$APP$TotalTime = dataset$APP[ ,c(1:7,9,10)]
+    new.data$APP$TotalTrials = dataset$APP[ ,c(1:7,9,11)]
+    new.data$APP$Accuracy = dataset$APP[ ,c(1:7,9,13)]
+    new.data$APP$Corrections = dataset$APP[ ,c(1:7,9,12)]
+    new.data$APP$RewardLat = dataset$APP[ ,c(1:7,9,15)]
+    new.data$APP$CorrectLat = dataset$APP[ ,c(1:7,9,14)]
     
-    new.data$TG5x$TotalTime = dataset$TG5x[ ,c(1:8,10)]
-    new.data$TG5x$TotalTrials = dataset$TG5x[ ,c(1:8,11)]
-    new.data$TG5x$Accuracy = dataset$TG5x[ ,c(1:8,13)]
-    new.data$TG5x$Corrections = dataset$TG5x[ ,c(1:8,12)]
-    new.data$TG5x$RewardLat = dataset$TG5x[ ,c(1:8,15)]
-    new.data$TG5x$CorrectLat = dataset$TG5x[ ,c(1:8,14)]
+    new.data$TG5x$TotalTime = dataset$TG5x[ ,c(1:7,9,10)]
+    new.data$TG5x$TotalTrials = dataset$TG5x[ ,c(1:7,9,11)]
+    new.data$TG5x$Accuracy = dataset$TG5x[ ,c(1:7,9,13)]
+    new.data$TG5x$Corrections = dataset$TG5x[ ,c(1:7,9,12)]
+    new.data$TG5x$RewardLat = dataset$TG5x[ ,c(1:7,9,15)]
+    new.data$TG5x$CorrectLat = dataset$TG5x[ ,c(1:7,9,14)]
     
-    new.data$TG3x$TotalTime = dataset$TG3x[ ,c(1:8,10)]
-    new.data$TG3x$TotalTrials = dataset$TG3x[ ,c(1:8,11)]
-    new.data$TG3x$Accuracy = dataset$TG3x[ ,c(1:8,13)]
-    new.data$TG3x$Corrections = dataset$TG3x[ ,c(1:8,12)]
-    new.data$TG3x$RewardLat = dataset$TG3x[ ,c(1:8,15)]
-    new.data$TG3x$CorrectLat = dataset$TG3x[ ,c(1:8,14)]
+    new.data$TG3x$TotalTime = dataset$TG3x[ ,c(1:7,9,10)]
+    new.data$TG3x$TotalTrials = dataset$TG3x[ ,c(1:7,9,11)]
+    new.data$TG3x$Accuracy = dataset$TG3x[ ,c(1:7,9,13)]
+    new.data$TG3x$Corrections = dataset$TG3x[ ,c(1:7,9,12)]
+    new.data$TG3x$RewardLat = dataset$TG3x[ ,c(1:7,9,15)]
+    new.data$TG3x$CorrectLat = dataset$TG3x[ ,c(1:7,9,14)]
   }
   return(new.data)
 }
 
 # Data Format - Long to Wide ##
-Data.Formatting.Function = function(dataset,m.value,datatype){
+Data.Formatting.Function = function(dataset,m.value,data.type){
   for(a in 1:3){
     for(b in 1:m.value){
       temp.data = as.data.frame(dataset[[a]][[b]])
-      colnames(temp.data)[8] = 'Value'
-      if(isTRUE(datatype == 0)){
+      if(data.type == 3){
+        colnames(temp.data)[9] = 'Value'
+      }else{
+        colnames(temp.data)[8] = 'Value' 
+      }
+      if(data.type == 1){
         data.cast = dcast(temp.data, AnimalID + TestSite + Mouse.Strain + Genotype + Sex ~ Age.Months + Task, fun.aggregate = mean, na.rm=TRUE, value.var="Value")
-      }else if(isTRUE(datatype == 1)){
-        data.cast = dcast(temp.data, AnimalID + TestSite + Mouse.Strain + Genotype + Sex ~ Age.Months + Stimulus.Length, fun.aggregate = mean, na.rm=TRUE, value.var="Value")
+      }else if(data.type == 2){
+        data.cast = dcast(temp.data, AnimalID + TestSite + Mouse.Strain + Genotype + Sex ~ Age.Months + Task, fun.aggregate = mean, na.rm=TRUE, value.var="Value")
+      }else if(data.type == 3){
+        data.cast = dcast(temp.data, AnimalID + TestSite + Mouse.Strain + Genotype + Sex ~ Age.Months + Task + Week, fun.aggregate = mean, na.rm=TRUE, value.var="Value")
       }
       for(c in 6:ncol(data.cast)){
         colnames(data.cast)[c] = paste('Data',colnames(data.cast)[c],sep=".")
@@ -160,7 +171,9 @@ raw.data.pretrain = read.csv('C:\\Users\\dpalmer\\Documents\\Weston_R_Script\\Da
 raw.data.acq = read.csv('C:\\Users\\dpalmer\\Documents\\Weston_R_Script\\Data\\Raw\\PAL\\Weston PAL Acquisition Aggregated Oct 12 2017 Updated.csv')
 raw.data.main = read.csv('C:\\Users\\dpalmer\\Documents\\Weston_R_Script\\Data\\Raw\\PAL\\Weston PAL Main Task Aggregated Oct 12 2017 Updated.csv')
 
-colnames(raw.data.pretrain)[6] = "Sex"
+colnames(raw.data.pretrain) = c('X','AnimalID','TestSite','Mouse.Strain','Genotype','Sex','Age.Months','Task','Date','Trials.To.Criteria')
+raw.data.pretrain$Genotype = revalue(raw.data.pretrain$Genotype, c('APP/PS1' = 'APP-PS1'))
+raw.data.pretrain$Mouse.Strain = revalue(raw.data.pretrain$Mouse.Strain, c('APP/PS1' = 'APP-PS1'))
 ## Separate each Raw File by Strain ##
 pretrain.separated.data = Strain.Separation.Function(raw.data.pretrain,0)
 acq.separated.data = Strain.Separation.Function(raw.data.acq,0)
@@ -168,11 +181,11 @@ main.separated.data = Strain.Separation.Function(raw.data.main,1)
 
 
 ## Separate Probe Data by Measure / Get Specific Columns ##
-pretrain.separated.measures = Measure.Separation.Function(pretrain.separated.data,0)
-acq.separated.measures = Measure.Separation.Function(acq.separated.data,0)
-main.separated.measures = Measure.Separation.Function(main.separated.data,1)
+pretrain.separated.measures = Measure.Separation.Function(pretrain.separated.data,1)
+acq.separated.measures = Measure.Separation.Function(acq.separated.data,2)
+main.separated.measures = Measure.Separation.Function(main.separated.data,3)
 
 ## Format Data Long to Wide ##
-pretrain.formatted.data = Data.Formatting.Function(pretrain.separated.measures,1,0)
-acq.formatted.data = Data.Formatting.Function(acq.separated.measures,1,1)
-main.formatted.data = Data.Formatting.Function(main.separated.measures,8,1)
+pretrain.formatted.data = Data.Formatting.Function(pretrain.separated.measures,1,1)
+acq.formatted.data = Data.Formatting.Function(acq.separated.measures,1,2)
+main.formatted.data = Data.Formatting.Function(main.separated.measures,6,3)
