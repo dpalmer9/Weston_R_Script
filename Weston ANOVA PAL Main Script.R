@@ -9,7 +9,7 @@
 
 ## Library ##
 library(plyr)
-library(tidyverse)
+#library(tidyverse)
 library(reshape2)
 library(car)
 
@@ -20,12 +20,12 @@ Strain.Separation.Function = function(dataset,long.form=0){
   new.data = list()
   if(long.form == 0){
     new.data$APP = dataset[which(dataset$Mouse.Strain=="APP-PS1"), c(2:10)]
-    new.data$TG3x = dataset[which(dataset$Mouse.Strain=="5xFAD"), c(2:10)]
-    new.data$TG5x = dataset[which(dataset$Mouse.Strain=="3xTG-AD"), c(2:10)] 
+    new.data$TG3x = dataset[which(dataset$Mouse.Strain=="3xTG-AD"), c(2:10)]
+    new.data$TG5x = dataset[which(dataset$Mouse.Strain=="5xFAD"), c(2:10)] 
   }else if(long.form == 1){
     new.data$APP = dataset[which(dataset$Mouse.Strain=="APP-PS1"), c(2:10,13:16,239,315)]
-    new.data$TG3x = dataset[which(dataset$Mouse.Strain=="5xFAD"), c(2:10,13:16,239,315)]
-    new.data$TG5x = dataset[which(dataset$Mouse.Strain=="3xTG-AD"), c(2:10,13:16,239,315)]
+    new.data$TG3x = dataset[which(dataset$Mouse.Strain=="3xTG-AD"), c(2:10,13:16,239,315)]
+    new.data$TG5x = dataset[which(dataset$Mouse.Strain=="5xFAD"), c(2:10,13:16,239,315)]
   }
   return(new.data)
 }
@@ -95,23 +95,33 @@ Data.Formatting.Function = function(dataset,m.value,data.type){
 # Generate iData for Repeated Measure Design (Probe Only) #
 iData.Generate.Function = function(dataset){
   template.data = dataset[[1]][[1]]
-  idata = unique(template.data[c('Age.Months','Stimulus.Length')])
-  idata = idata[order(idata$Age.Months,idata$Stimulus.Length), ]
-  idata$Age.Months = as.factor(idata$Age.Months)
-  idata$Stimulus.Length = as.factor(idata$Stimulus.Length)
+  idata = unique(template.data[c('Week')])
+  idata = idata[order(idata), ]
+  idata = as.factor(idata)
   return(idata)
 }
 
 # Calculate ANOVA Results #
-Anova.Preparation.Probe.Function = function(dataset,idata){
+Anova.Preparation.Main.Function = function(dataset,idata,age){
   for(a in 1:length(dataset)){
     for(b in 1:length(dataset[[a]])){
       data.file =dataset[[a]][[b]]
-      data.file = data.file[complete.cases(data.file), ]
       data.file[ ,c(1,3)] = NULL
-      data.depend = data.file[ ,4:ncol(data.file)]
-      data.lm = lm(as.matrix(data.depend) ~ 1+ TestSite * Genotype * Sex, data=data.file)
-      data.anova = Anova(data.lm, idata=idata,idesign=~Age.Months*Stimulus.Length, type="III")
+      if(age == 4){
+        data.file = data.file[ ,c(1:3,4:12)]
+        data.file = data.file[complete.cases(data.file), ]
+        data.depend = data.file[ ,4:12]
+        
+      }else if(age == 10){
+        data.file = data.file[ ,c(1:3,13:21)]
+        data.file = data.file[complete.cases(data.file), ]
+        data.depend = data.file[ ,13:21]
+        
+      }
+      data.lm = lm(as.matrix(data.depend) ~ 1 + Genotype * Sex, data=data.file)
+      Week = as.data.frame(matrix(nrow=9,ncol=0))
+      Week$Week = as.factor(idata)
+      data.anova = Anova(data.lm, idata=Week,idesign=~Week, type="III")
       dataset[[a]][[b]] = data.anova
     }
   }
@@ -123,10 +133,10 @@ Anova.Preparation.Pretrain.Function = function(dataset){
   for(a in 1:length(dataset)){
     for(b in 1:length(dataset[[a]])){
       data.file =dataset[[a]][[b]]
+      data.file = data.file[ ,c(4,5,11)]
       data.file = data.file[complete.cases(data.file), ]
-      data.file[ ,c(1,3)] = NULL
-      data.depend = data.file[ ,7]
-      data.lm = lm(as.matrix(data.depend) ~ 1+ TestSite * Genotype * Sex, data=data.file)
+      data.depend = data.file[ ,3]
+      data.lm = lm(as.matrix(data.depend) ~ 1+ Genotype * Sex, data=data.file)
       data.anova = Anova(data.lm, type="III")
       dataset[[a]][[b]] = data.anova
     }
@@ -189,3 +199,12 @@ main.separated.measures = Measure.Separation.Function(main.separated.data,3)
 pretrain.formatted.data = Data.Formatting.Function(pretrain.separated.measures,1,1)
 acq.formatted.data = Data.Formatting.Function(acq.separated.measures,1,2)
 main.formatted.data = Data.Formatting.Function(main.separated.measures,6,3)
+
+## Gather iData for Repeated Measures ##
+main.idata = iData.Generate.Function(main.separated.measures)
+
+## Conduct ANOVA ##
+pretrain.anova = Anova.Preparation.Pretrain.Function(pretrain.formatted.data)
+acq.4.anova = Anova.Preparation.Acquisition.Function(acq.formatted.data,4)
+acq.2.anova = Anova.Preparation.Acquisition.Function(acq.formatted.data,2)
+main.4month.anova = Anova.Preparation.Main.Function(main.formatted.data,main.idata,4)
