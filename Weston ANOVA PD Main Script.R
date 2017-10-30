@@ -42,26 +42,26 @@ Measure.Separation.Function = function(dataset, file.type=0){
     new.data$TG5x$Sessions = dataset$TG5x[ ,c(1:8)]
     new.data$TG3x$Sessions = dataset$TG3x[ ,c(1:8)]
   }else if(file.type == 3){
-    new.data$APP$TotalTime = dataset$APP[ ,c(2:8,11)]
-    new.data$APP$TotalTrials = dataset$APP[ ,c(2:8,12)]
-    new.data$APP$Accuracy = dataset$APP[ ,c(2:8,14)]
-    new.data$APP$Corrections = dataset$APP[ ,c(2:8,13)]
-    new.data$APP$RewardLat = dataset$APP[ ,c(2:8,16)]
-    new.data$APP$CorrectLat = dataset$APP[ ,c(2:8,15)]
+    new.data$APP$TotalTime = dataset$APP[ ,c(2:8,10,11)]
+    new.data$APP$TotalTrials = dataset$APP[ ,c(2:8,10,12)]
+    new.data$APP$Accuracy = dataset$APP[ ,c(2:8,10,14)]
+    new.data$APP$Corrections = dataset$APP[ ,c(2:8,10,13)]
+    new.data$APP$RewardLat = dataset$APP[ ,c(2:8,10,16)]
+    new.data$APP$CorrectLat = dataset$APP[ ,c(2:8,10,15)]
     
-    new.data$TG5x$TotalTime = dataset$TG5x[ ,c(2:8,11)]
-    new.data$TG5x$TotalTrials = dataset$TG5x[ ,c(2:8,12)]
-    new.data$TG5x$Accuracy = dataset$TG5x[ ,c(2:8,14)]
-    new.data$TG5x$Corrections = dataset$TG5x[ ,c(2:8,13)]
-    new.data$TG5x$RewardLat = dataset$TG5x[ ,c(2:8,16)]
-    new.data$TG5x$CorrectLat = dataset$TG5x[ ,c(2:8,15)]
+    new.data$TG5x$TotalTime = dataset$TG5x[ ,c(2:8,10,11)]
+    new.data$TG5x$TotalTrials = dataset$TG5x[ ,c(2:8,10,12)]
+    new.data$TG5x$Accuracy = dataset$TG5x[ ,c(2:8,10,14)]
+    new.data$TG5x$Corrections = dataset$TG5x[ ,c(2:8,10,13)]
+    new.data$TG5x$RewardLat = dataset$TG5x[ ,c(2:8,10,16)]
+    new.data$TG5x$CorrectLat = dataset$TG5x[ ,c(2:8,10,15)]
     
-    new.data$TG3x$TotalTime = dataset$TG3x[ ,c(2:8,11)]
-    new.data$TG3x$TotalTrials = dataset$TG3x[ ,c(2:8,12)]
-    new.data$TG3x$Accuracy = dataset$TG3x[ ,c(2:8,14)]
-    new.data$TG3x$Corrections = dataset$TG3x[ ,c(2:8,13)]
-    new.data$TG3x$RewardLat = dataset$TG3x[ ,c(2:8,16)]
-    new.data$TG3x$CorrectLat = dataset$TG3x[ ,c(2:8,15)]
+    new.data$TG3x$TotalTime = dataset$TG3x[ ,c(2:8,10,11)]
+    new.data$TG3x$TotalTrials = dataset$TG3x[ ,c(2:8,10,12)]
+    new.data$TG3x$Accuracy = dataset$TG3x[ ,c(2:8,10,14)]
+    new.data$TG3x$Corrections = dataset$TG3x[ ,c(2:8,10,13)]
+    new.data$TG3x$RewardLat = dataset$TG3x[ ,c(2:8,10,16)]
+    new.data$TG3x$CorrectLat = dataset$TG3x[ ,c(2:8,10,15)]
   }
   return(new.data)
 }
@@ -72,7 +72,7 @@ Data.Formatting.Function = function(dataset,m.value,data.type){
     for(b in 1:m.value){
       temp.data = as.data.frame(dataset[[a]][[b]])
       if(data.type == 3){
-        colnames(temp.data)[9] = 'Value'
+        colnames(temp.data)[8] = 'Value'
       }else{
         colnames(temp.data)[8] = 'Value' 
       }
@@ -81,7 +81,7 @@ Data.Formatting.Function = function(dataset,m.value,data.type){
       }else if(data.type == 2){
         data.cast = dcast(temp.data, AnimalID + TestSite + Mouse.Strain + Genotype + Sex ~ Age.Months + Task, fun.aggregate = mean, na.rm=TRUE, value.var="Value")
       }else if(data.type == 3){
-        data.cast = dcast(temp.data, AnimalID + TestSite + Mouse.Strain + Genotype + Sex ~ Age.Months + Task + Week, fun.aggregate = mean, na.rm=TRUE, value.var="Value")
+        data.cast = dcast(temp.data, AnimalID + TestSite + Mouse.Strain + Genotype + Sex ~ Age.Months + Task, fun.aggregate = mean, na.rm=TRUE, value.var="Value")
       }
       for(c in 6:ncol(data.cast)){
         colnames(data.cast)[c] = paste('Data',colnames(data.cast)[c],sep=".")
@@ -191,6 +191,8 @@ main.separated.data = Strain.Separation.Function(raw.data.main,1)
 pretrain.separated.measures = Measure.Separation.Function(pretrain.separated.data,1)
 acq.separated.measures = Measure.Separation.Function(acq.separated.data,2)
 main.separated.measures = Measure.Separation.Function(main.separated.data,3)
+
+## Remove Baseline Protocol From Main Task ##
 
 ## Format Data Long to Wide ##
 pretrain.formatted.data = Data.Formatting.Function(pretrain.separated.measures,1,1)
