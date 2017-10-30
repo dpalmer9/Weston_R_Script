@@ -19,9 +19,9 @@ library(car)
 Strain.Separation.Function = function(dataset,long.form=0){
   new.data = list()
   if(long.form == 0){
-    new.data$APP = dataset[which(dataset$Mouse.Strain=="APP-PS1"), c(2:10)]
-    new.data$TG3x = dataset[which(dataset$Mouse.Strain=="3xTG-AD"), c(2:10)]
-    new.data$TG5x = dataset[which(dataset$Mouse.Strain=="5xFAD"), c(2:10)] 
+    new.data$APP = dataset[which(dataset$Mouse.Strain=="APP-PS1"), c(2:9)]
+    new.data$TG3x = dataset[which(dataset$Mouse.Strain=="3xTG-AD"), c(2:9)]
+    new.data$TG5x = dataset[which(dataset$Mouse.Strain=="5xFAD"), c(2:9)] 
   }else if(long.form == 1){
     new.data$APP = dataset[which(dataset$Mouse.Strain=="APP-PS1"), c(2:10,13:16,239,315)]
     new.data$TG3x = dataset[which(dataset$Mouse.Strain=="3xTG-AD"), c(2:10,13:16,239,315)]
@@ -34,13 +34,13 @@ Strain.Separation.Function = function(dataset,long.form=0){
 Measure.Separation.Function = function(dataset, file.type=0){
   new.data = list()
   if(file.type == 1){
-    new.data$APP$Sessions = dataset$APP[ ,c(1:7,9)]
-    new.data$TG5x$Sessions = dataset$TG5x[ ,c(1:7,9)]
-    new.data$TG3x$Sessions = dataset$TG3x[ ,c(1:7,9)]
+    new.data$APP$Sessions = dataset$APP[ ,c(1:8)]
+    new.data$TG5x$Sessions = dataset$TG5x[ ,c(1:8)]
+    new.data$TG3x$Sessions = dataset$TG3x[ ,c(1:8)]
   }else if(file.type == 2){
-    new.data$APP$Sessions = dataset$APP[ ,c(2:9)]
-    new.data$TG5x$Sessions = dataset$TG5x[ ,c(2:9)]
-    new.data$TG3x$Sessions = dataset$TG3x[ ,c(2:9)]
+    new.data$APP$Sessions = dataset$APP[ ,c(1:8)]
+    new.data$TG5x$Sessions = dataset$TG5x[ ,c(1:8)]
+    new.data$TG3x$Sessions = dataset$TG3x[ ,c(1:8)]
   }else if(file.type == 3){
     new.data$APP$TotalTime = dataset$APP[ ,c(1:7,9,10)]
     new.data$APP$TotalTrials = dataset$APP[ ,c(1:7,9,11)]
@@ -115,7 +115,7 @@ Anova.Preparation.Main.Function = function(dataset,idata,age){
       }else if(age == 10){
         data.file = data.file[ ,c(1:3,13:21)]
         data.file = data.file[complete.cases(data.file), ]
-        data.depend = data.file[ ,13:21]
+        data.depend = data.file[ ,4:12]
         
       }
       data.lm = lm(as.matrix(data.depend) ~ 1 + Genotype * Sex, data=data.file)
@@ -133,7 +133,7 @@ Anova.Preparation.Pretrain.Function = function(dataset){
   for(a in 1:length(dataset)){
     for(b in 1:length(dataset[[a]])){
       data.file =dataset[[a]][[b]]
-      data.file = data.file[ ,c(4,5,11)]
+      data.file = data.file[ ,c(4,5,9)]
       data.file = data.file[complete.cases(data.file), ]
       data.depend = data.file[ ,3]
       data.lm = lm(as.matrix(data.depend) ~ 1+ Genotype * Sex, data=data.file)
@@ -144,19 +144,19 @@ Anova.Preparation.Pretrain.Function = function(dataset){
   return(dataset)
 }
 
-Anova.Preparation.Acquisition.Function = function(dataset,trainingstim){
+Anova.Preparation.Acquisition.Function = function(dataset,age){
   final.dataset = list()
   for(a in 1:length(dataset)){
     for(b in 1:length(dataset[[a]])){
       data.file =dataset[[a]][[b]]
       data.file = data.file[complete.cases(data.file), ]
-      data.file[ ,c(1,3)] = NULL
-      if(trainingstim == 4){
-        data.depend = data.file[ ,5]
-      }else if(trainingstim == 2){
+      data.file[ ,c(1:3)] = NULL
+      if(age == 4){
+        data.depend = data.file[ ,3]
+      }else if(age == 10){
         data.depend = data.file[ ,4]
       }
-      data.lm = lm(as.matrix(data.depend) ~ 1+ TestSite * Genotype * Sex, data=data.file)
+      data.lm = lm(as.matrix(data.depend) ~ 1+ Genotype * Sex, data=data.file)
       data.anova = Anova(data.lm, type="III")
       dataset[[a]][[b]] = data.anova
     }
@@ -205,6 +205,7 @@ main.idata = iData.Generate.Function(main.separated.measures)
 
 ## Conduct ANOVA ##
 pretrain.anova = Anova.Preparation.Pretrain.Function(pretrain.formatted.data)
-acq.4.anova = Anova.Preparation.Acquisition.Function(acq.formatted.data,4)
-acq.2.anova = Anova.Preparation.Acquisition.Function(acq.formatted.data,2)
+#acq.4month.anova = Anova.Preparation.Acquisition.Function(acq.formatted.data,4)
+#acq.10month.anova = Anova.Preparation.Acquisition.Function(acq.formatted.data,10)
 main.4month.anova = Anova.Preparation.Main.Function(main.formatted.data,main.idata,4)
+main.10month.anova = Anova.Preparation.Main.Function(main.formatted.data, main.idata, 10)
