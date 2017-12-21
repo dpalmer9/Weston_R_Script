@@ -11,6 +11,7 @@
 library(tidyverse)
 library(reshape2)
 library(car)
+library(ggplot2)
 
 ## Functions List ##
 
@@ -265,3 +266,31 @@ Anova.Preparation.Probe.ZFunction = function(dataset,idata){
   }
   return(dataset)
 }
+###################### Z-SCORE PLOT V3 #########################
+ZScore.Merge.Function = function(dataset){
+  merge.dataset = as.data.frame(matrix(nrow=0,ncol=15))
+  colnames(merge.dataset)[1:7] = colnames(dataset[[1]][[1]])[1:7]
+  colnames(merge.dataset)[8:15] = names(dataset[[1]])
+  for(a in 1:3){
+   copy.col = 8
+   new.dataset = as.data.frame(matrix(nrow=nrow(dataset[[a]][[1]]),ncol=15))
+   colnames(new.dataset)[1:7] = colnames(dataset[[1]][[1]])[1:7]
+   colnames(new.dataset)[8:15] = names(dataset[[1]])
+    for(b in 1:8){
+      active.data = dataset[[a]][[b]]
+      if(b == 1){
+        new.dataset[ ,1:7] = active.data[ ,1:7]
+      }
+      new.dataset[ ,(copy.col)] = active.data[ ,8]
+      copy.col = copy.col + 1
+    }
+   merge.dataset = rbind(merge.dataset,new.dataset)
+  }
+  return(merge.dataset)
+  return(dataset)
+}
+
+ZScore.Mergedata = ZScore.Merge.Function(probe.zscore)
+ZScore.WithinAgg = aggregate
+
+Z.plot.acc = qplot(x=)
