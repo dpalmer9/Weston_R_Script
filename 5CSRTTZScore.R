@@ -291,6 +291,10 @@ ZScore.Merge.Function = function(dataset){
 }
 
 ZScore.Mergedata = ZScore.Merge.Function(probe.zscore)
-ZScore.WithinAgg = aggregate
+ZScore.WithinAgg = aggregate(ZScore.Mergedata, by=list(ZScore.Mergedata$AnimalID,ZScore.Mergedata$TestSite,ZScore.Mergedata$Genotype,ZScore.Mergedata$Sex),FUN = mean,na.rm=TRUE)
+ZScore.WithinAgg[ ,5:11] = NULL
+colnames(ZScore.WithinAgg)[1:4] = c('AnimalID','TestSite','Genotype','Sex')
 
-Z.plot.acc = qplot(x=)
+Z.plot.acc = ggplot(ZScore.Mergedata,aes(x=Genotype,y=Accuracy,color=TestSite)) + geom_point(position = position_dodge(width = 0.4))
+
+z.plot.acc.collapse = ggplot(ZScore.WithinAgg,aes(x=Genotype,y=Accuracy,color=TestSite,shape=Sex)) + geom_point(position = position_dodge(width = 0.4))
