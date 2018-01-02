@@ -295,6 +295,19 @@ ZScore.WithinAgg = aggregate(ZScore.Mergedata, by=list(ZScore.Mergedata$AnimalID
 ZScore.WithinAgg[ ,5:11] = NULL
 colnames(ZScore.WithinAgg)[1:4] = c('AnimalID','TestSite','Genotype','Sex')
 
+Z.Graph.Function = function(dataset){
+  plot.list = list()
+  plot.list$Acc = ggplot(dataset,aes(x=Genotype,y=Accuracy,color=TestSite,shape=Sex)) + geom_point(position = position_dodge(width = 0.4)) + theme(panel.background = element_rect(fill = "white", colour = "grey50"),panel.grid.major.y = element_line(colour = "grey50")) + scale_y_continuous(limits = c(-3,3))
+  plot.list$Omission = ggplot(dataset,aes(x=Genotype,y=Omission,color=TestSite,shape=Sex)) + geom_point(position = position_dodge(width = 0.4)) + theme(panel.background = element_rect(fill = "white", colour = "grey50"),panel.grid.major.y = element_line(colour = "grey50")) + scale_y_continuous(limits = c(-3,3))
+  plot.list$Premature = ggplot(dataset,aes(x=Genotype,y=Premature,color=TestSite,shape=Sex)) + geom_point(position = position_dodge(width = 0.4)) + theme(panel.background = element_rect(fill = "white", colour = "grey50"),panel.grid.major.y = element_line(colour = "grey50")) + scale_y_continuous(limits = c(-3,3))
+  plot.list$Perseverative = ggplot(dataset,aes(x=Genotype,y=Perseverative,color=TestSite,shape=Sex)) + geom_point(position = position_dodge(width = 0.4)) + theme(panel.background = element_rect(fill = "white", colour = "grey50"),panel.grid.major.y = element_line(colour = "grey50")) + scale_y_continuous(limits = c(-3,3))
+  plot.list$RewardLat = ggplot(dataset,aes(x=Genotype,y=RewardLat,color=TestSite,shape=Sex)) + geom_point(position = position_dodge(width = 0.4)) + theme(panel.background = element_rect(fill = "white", colour = "grey50"),panel.grid.major.y = element_line(colour = "grey50")) + scale_y_continuous(limits = c(-3,3))
+  plot.list$CorrectLat = ggplot(dataset,aes(x=Genotype,y=CorrectLat,color=TestSite,shape=Sex)) + geom_point(position = position_dodge(width = 0.4)) + theme(panel.background = element_rect(fill = "white", colour = "grey50"),panel.grid.major.y = element_line(colour = "grey50")) + scale_y_continuous(limits = c(-3,3))
+  return(plot.list)
+}
+
 Z.plot.acc = ggplot(ZScore.Mergedata,aes(x=Genotype,y=Accuracy,color=TestSite)) + geom_point(position = position_dodge(width = 0.4))
 
 z.plot.acc.collapse = ggplot(ZScore.WithinAgg,aes(x=Genotype,y=Accuracy,color=TestSite,shape=Sex)) + geom_point(position = position_dodge(width = 0.4))
+
+Z.Plots = Z.Graph.Function(ZScore.WithinAgg)
