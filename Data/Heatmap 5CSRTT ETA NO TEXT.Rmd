@@ -1,0 +1,384 @@
+---
+title: "Heat maps"
+author: "Daniel Palmer, PhD"
+date: "February 8, 2018"
+output: word_document
+classoption: landscape
+fig_width: 10
+fig_height: 10
+---
+
+```{r setup, include=FALSE,echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(fig.width=10, fig.height=10) 
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#################################################
+#                                               #
+#                                               #
+#         Weston Anova Script                   #
+#             5-CSRTT                           #
+#                                               #
+#                                               #
+#################################################
+
+## Library ##
+library(tidyverse)
+library(reshape2)
+library(car)
+
+library(gplots)
+library(RColorBrewer)
+
+## Functions List ##
+
+# Separate Into Strains for Analysis #
+Strain.Separation.Function = function(dataset,long.form=0){
+  new.data = list()
+  if(long.form == 0){
+    new.data$APP = dataset[which(dataset$Mouse.Strain=="APP-PS1"), ]
+    new.data$TG3x = dataset[which(dataset$Mouse.Strain=="3xTG-AD"), ]
+    new.data$TG5x = dataset[which(dataset$Mouse.Strain=="5xFAD"), ] 
+  }else if(long.form == 1){
+    new.data$APP = dataset[which(dataset$Mouse.Strain=="APP-PS1"), c(2:9,14:19,70,122)]
+    new.data$TG3x = dataset[which(dataset$Mouse.Strain=="3xTG-AD"), c(2:9,14:19,70,122)]
+    new.data$TG5x = dataset[which(dataset$Mouse.Strain=="5xFAD"), c(2:9,14:19,70,122)]
+  }
+  return(new.data)
+}
+
+# Separate Into Separate Measures for Each File + Transform # #
+Measure.Separation.Function = function(dataset, long.form=0){
+  new.data = list()
+  if(long.form == 0){
+    new.data$APP$Sessions = dataset$APP[ ,c(2:9)]
+    new.data$TG5x$Sessions = dataset$TG5x[ ,c(2:9)]
+    new.data$TG3x$Sessions = dataset$TG3x[ ,c(2:9)]
+  }else if(long.form == 1){
+    new.data$APP$TotalTime = dataset$APP[ ,c(2:8,9)]
+    new.data$APP$TotalTrials = dataset$APP[ ,c(2:8,10)]
+    new.data$APP$Accuracy = dataset$APP[ ,c(2:8,11)]
+    new.data$APP$Omission = dataset$APP[ ,c(2:8,12)]
+    new.data$APP$Premature = dataset$APP[ ,c(2:8,13)]
+    new.data$APP$Perseverative = dataset$APP[ ,c(2:8,14)]
+    new.data$APP$RewardLat = dataset$APP[ ,c(2:8,15)]
+    new.data$APP$CorrectLat = dataset$APP[ ,c(2:8,16)]
+    
+    new.data$TG5x$TotalTime = dataset$TG5x[ ,c(2:8,9)]
+    new.data$TG5x$TotalTrials = dataset$TG5x[ ,c(2:8,10)]
+    new.data$TG5x$Accuracy = dataset$TG5x[ ,c(2:8,11)]
+    new.data$TG5x$Omission = dataset$TG5x[ ,c(2:8,12)]
+    new.data$TG5x$Premature = dataset$TG5x[ ,c(2:8,13)]
+    new.data$TG5x$Perseverative = dataset$TG5x[ ,c(2:8,14)]
+    new.data$TG5x$RewardLat = dataset$TG5x[ ,c(2:8,15)]
+    new.data$TG5x$CorrectLat = dataset$TG5x[ ,c(2:8,16)]
+    
+    new.data$TG3x$TotalTime = dataset$TG3x[ ,c(2:8,9)]
+    new.data$TG3x$TotalTrials = dataset$TG3x[ ,c(2:8,10)]
+    new.data$TG3x$Accuracy = dataset$TG3x[ ,c(2:8,11)]
+    new.data$TG3x$Omission = dataset$TG3x[ ,c(2:8,12)]
+    new.data$TG3x$Premature = dataset$TG3x[ ,c(2:8,13)]
+    new.data$TG3x$Perseverative = dataset$TG3x[ ,c(2:8,14)]
+    new.data$TG3x$RewardLat = dataset$TG3x[ ,c(2:8,15)]
+    new.data$TG3x$CorrectLat = dataset$TG3x[ ,c(2:8,16)]
+  }
+  return(new.data)
+}
+
+# Data Format - Long to Wide ##
+Data.Formatting.Function = function(dataset,m.value,datatype){
+  for(a in 1:3){
+    for(b in 1:m.value){
+      temp.data = as.data.frame(dataset[[a]][[b]])
+      colnames(temp.data)[8] = 'Value'
+      if(isTRUE(datatype == 0)){
+        data.cast = dcast(temp.data, AnimalID + TestSite + Mouse.Strain + Genotype + Sex ~ Age.Months + Task, fun.aggregate = mean, na.rm=TRUE, value.var="Value")
+      }else if(isTRUE(datatype == 1)){
+        data.cast = dcast(temp.data, AnimalID + TestSite + Mouse.Strain + Genotype + Sex ~ Age.Months + Stimulus.Length, fun.aggregate = mean, na.rm=TRUE, value.var="Value")
+      }
+      for(c in 6:ncol(data.cast)){
+        colnames(data.cast)[c] = paste('Data',colnames(data.cast)[c],sep=".")
+      }
+      dataset[[a]][[b]] = as.data.frame(data.cast)
+    }
+  }
+  return(dataset)
+}
+
+# Generate iData for Repeated Measure Design (Probe Only) #
+iData.Generate.Function = function(dataset){
+  template.data = dataset[[1]][[1]]
+  idata = unique(template.data[c('Stimulus.Length')])
+  idata = idata[order(idata$Stimulus.Length), ]
+  idata = as.data.frame(as.vector(idata))
+  colnames(idata) = 'Stimulus.Length'
+  idata$Stimulus.Length = as.factor(idata$Stimulus.Length)
+  return(idata)
+}
+
+# Calculate ANOVA Results #
+Anova.Preparation.Probe.Function = function(dataset,idata){
+  dataset.new = list()
+  strain.vector = c('APP','TG5x','TG3x')
+  age.vector=c('Month4','Month7','Month10')
+  measure.vector = c('TotalTime','TotalTrials','Accuracy','Omission','Premature','Perseverative','RewardLat','CorrectLat')
+  col.list = list(c(6:9),c(10:13),c(14:17))
+  for(a in 1:length(dataset)){
+    for(b in 1:length(dataset[[a]])){
+      full.data.file =dataset[[a]][[b]]
+      for(c in 1:length(col.list)){
+        data.file = full.data.file[ ,c(1:5,col.list[[c]])]
+        data.file = data.file[complete.cases(data.file), ]
+        data.file[ ,c(1,3)] = NULL
+        data.depend = data.file[ ,4:ncol(data.file)]
+        data.lm = lm(as.matrix(data.depend) ~ 1+ TestSite * Genotype * Sex, data=data.file)
+        data.anova = Anova(data.lm, idata=idata,idesign=~Stimulus.Length, type="III")
+        dataset.new[[strain.vector[a]]][[age.vector[c]]][[measure.vector[b]]] = data.anova
+      }
+    }
+  }
+  return(dataset.new)
+}
+
+Anova.Preparation.Pretrain.Function = function(dataset){
+  final.dataset = list()
+  for(a in 1:length(dataset)){
+    for(b in 1:length(dataset[[a]])){
+      data.file =dataset[[a]][[b]]
+      data.file = data.file[complete.cases(data.file), ]
+      data.file[ ,c(1,3)] = NULL
+      data.depend = data.file[ ,7]
+      data.lm = lm(as.matrix(data.depend) ~ 1+ TestSite * Genotype * Sex, data=data.file)
+      data.anova = Anova(data.lm, type="III")
+      dataset[[a]][[b]] = data.anova
+    }
+  }
+  return(dataset)
+}
+
+Anova.Preparation.Acquisition.Function = function(dataset,trainingstim){
+  final.dataset = list()
+  for(a in 1:length(dataset)){
+    for(b in 1:length(dataset[[a]])){
+      data.file =dataset[[a]][[b]]
+      data.file = data.file[complete.cases(data.file), ]
+      data.file[ ,c(1,3)] = NULL
+      if(trainingstim == 4){
+        data.depend = data.file[ ,5]
+      }else if(trainingstim == 2){
+        data.depend = data.file[ ,4]
+      }
+      data.lm = lm(as.matrix(data.depend) ~ 1+ TestSite * Genotype * Sex, data=data.file)
+      data.anova = Anova(data.lm, type="III")
+      dataset[[a]][[b]] = data.anova
+    }
+  }
+  return(dataset)
+}
+
+## Settings ##
+options(scipen=50)
+options(contrasts = c('contr.sum','contr.poly'))
+
+## Read Data ##
+#raw.data.pretrain = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Pretrain QC Oct 12 2017 Updated.csv')
+#raw.data.acq = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Acquisition Aggregated QC Oct 12 2017 Updated.csv')
+#raw.data.probe = read.csv('C:\\Users\\dpalmer\\Documents\\WestonANOVAProcedure\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Probe Aggregated QC Oct 12 2017 Updated.csv')
+
+#raw.data.pretrain = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Pretrain QC Oct 12 2017 Updated.csv')
+#raw.data.acq = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Acquisition Aggregated QC Oct 12 2017 Updated.csv')
+#raw.data.probe = read.csv('C:\\Users\\Danie\\Documents\\R\\Projects\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Probe Aggregated QC Oct 12 2017 Updated.csv')
+
+raw.data.pretrain = read.csv('C:\\Users\\dpalmer\\Documents\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Pretrain QC Oct 12 2017 Updated.csv')
+raw.data.acq = read.csv('C:\\Users\\dpalmer\\Documents\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Acquisition Aggregated QC Oct 12 2017 Updated.csv')
+raw.data.probe = read.csv('C:\\Users\\dpalmer\\Documents\\Weston_R_Script\\Data\\Raw\\5CSRTT\\Weston 5CSRTT Probe Aggregated QC Oct 12 2017 Updated.csv')
+
+## Separate each Raw File by Strain ##
+pretrain.separated.data = Strain.Separation.Function(raw.data.pretrain,0)
+acq.separated.data = Strain.Separation.Function(raw.data.acq,0)
+probe.separated.data = Strain.Separation.Function(raw.data.probe,1)
+
+## Separate Probe Data by Measure / Get Specific Columns ##
+pretrain.separated.measures = Measure.Separation.Function(pretrain.separated.data,0)
+acq.separated.measures = Measure.Separation.Function(acq.separated.data,0)
+probe.separated.measures = Measure.Separation.Function(probe.separated.data,1)
+
+## Format Data Long to Wide ##
+pretrain.formatted.data = Data.Formatting.Function(pretrain.separated.measures,1,0)
+acq.formatted.data = Data.Formatting.Function(acq.separated.measures,1,1)
+probe.formatted.data = Data.Formatting.Function(probe.separated.measures,8,1)
+
+## Gather iData for Repeated Measures ##
+probe.idata = iData.Generate.Function(probe.separated.measures)
+
+## Conduct ANOVA ##
+pretrain.anova = Anova.Preparation.Pretrain.Function(pretrain.formatted.data)
+acq.4.anova = Anova.Preparation.Acquisition.Function(acq.formatted.data,4)
+acq.2.anova = Anova.Preparation.Acquisition.Function(acq.formatted.data,2)
+probe.anova = Anova.Preparation.Probe.Function(probe.formatted.data,probe.idata)
+
+## Prepare ANOVA Table ##
+strain.list = as.vector(names(probe.anova))
+measure.list = as.vector(names(probe.anova$APP$Month4))
+measure.list = measure.list[c(3:8)]
+age.list = as.vector(names(probe.anova$APP))
+template.file = summary(probe.anova[[1]][[1]][[1]], multivariate=FALSE)
+template.rownames = rownames(template.file[[4]])
+template.rownames = template.rownames[2:length(template.rownames)]
+template.pvalads = rownames(template.file[[5]])
+
+hm.rownames = template.rownames
+hm.rownames = gsub('Genotype','G',hm.rownames)
+hm.rownames = gsub('Sex','Sx',hm.rownames)
+hm.rownames = gsub('TestSite','Ts',hm.rownames)
+hm.rownames = gsub('Stimulus.Length','Sl',hm.rownames)
+hm.rownames = gsub(':','*',hm.rownames)
+
+map.list = list()
+for(a in 1:length(strain.list)){
+  summary.table = as.data.frame(matrix(nrow=15,ncol=6))
+  rownames(summary.table) = template.rownames
+  colnames(summary.table) = measure.list
+  p.table = as.data.frame(matrix(nrow=15,ncol=6))
+  eta.table = as.data.frame(matrix(nrow=15,ncol=6))
+  rownames(p.table) = template.rownames
+  colnames(p.table) = measure.list
+  rownames(eta.table) = template.rownames
+  colnames(eta.table) = measure.list
+  for(b in 1:length(age.list)){
+    for(d in 1:length(measure.list)){
+      temp.summary = summary(probe.anova[[strain.list[a]]][[age.list[b]]][[measure.list[d]]], multivariate=FALSE)
+      temp.main = temp.summary[[4]]
+      temp.pvalad = temp.summary[[5]]
+      for(c in 1:length(template.pvalads)){
+        temp.main[which(rownames(temp.main) == template.pvalads[c]),6] = temp.pvalad[which(rownames(temp.pvalad) == template.pvalads[c]),2]
+      }
+      for(c in 1:nrow(summary.table)){
+        temp.charvec = c('F(',NA,',',NA,')=',NA,',p=',NA,',partial eta^2=',NA)
+        #temp.charvec = c('F(',NA,',',NA,')=',NA,',p=',NA)
+        temp.charvec[2] = as.character(temp.main[(c+1),2])
+        temp.charvec[4] = as.character(temp.main[(c+1),4])
+        temp.charvec[6] = as.character(round(temp.main[(c+1),5],digits=2))
+        temp.charvec[8] = as.character(round(temp.main[(c+1),6],digits=2))
+        partial.eta = temp.main[(c+1),1] / (temp.main[(c+1),1] + temp.main[(c+1),3])
+        temp.charvec[10] = as.character(round(partial.eta, digits=2))
+        temp.charvec = paste(temp.charvec,collapse='')
+        summary.table[c,d] = temp.charvec
+        p.table[c,d] = round(temp.main[(c+1),6],digits = 6)
+        eta.table[c,d] = round(partial.eta,digits = 6)
+      }
+    }
+    rownames(summary.table) = hm.rownames
+    map.list[[strain.list[a]]][[age.list[b]]][['Summary']] = summary.table
+    rownames(p.table) = hm.rownames
+    map.list[[strain.list[a]]][[age.list[b]]][['PVal']] = p.table
+    rownames(eta.table) = hm.rownames
+    map.list[[strain.list[a]]][[age.list[b]]][['Eta']] = eta.table
+  }
+}
+
+
+heat.list = list()
+color.pallete = colorRampPalette(c('Green','Yellow','Red'))(n=99)
+color.breaks = c(seq(0,0.01,length=10),seq(0.011,0.249,length=45),seq(0.25,1,length=45))
+
+```
+
+
+# 3xTG
+
+## 4 Month
+```{r echo=FALSE}
+heatmap.2(as.matrix(map.list$TG3x$Month4$Eta)
+          ,density.info = 'none',trace='none',col=color.pallete, breaks = color.breaks
+          ,dendrogram='none',Colv='NA',Rowv=FALSE,srtCol=45,key=FALSE
+          ,lwid=c(0.1,80), lhei=c(0.1,8) ,cexCol = 1.5,cexRow=1.5,offsetRow = 0
+          ,offsetCol = 0,margins=c(0,0),labRow = NULL,labCol = NULL
+          ,cellnote = map.list$TG3x$Month4$Eta,notecex = 1.0,notecol = 'black')
+```
+
+## 7 Month
+```{r echo=FALSE}
+heatmap.2(as.matrix(map.list$TG3x$Month7$Eta)
+          ,density.info = 'none',trace='none',col=color.pallete, breaks = color.breaks
+          ,dendrogram='none',Colv='NA',Rowv=FALSE,srtCol=45,key=FALSE
+          ,lwid=c(0.1,80), lhei=c(0.1,8) ,cexCol = 1.5,cexRow=1.5,offsetRow = 0
+          ,offsetCol = 0,margins=c(0,0),labRow = NULL,labCol = NULL
+          ,cellnote = map.list$TG3x$Month7$Eta,notecex = 1.0,notecol = 'black')
+```
+
+## 10 Month
+```{r echo=FALSE}
+heatmap.2(as.matrix(map.list$TG3x$Month10$Eta)
+          ,density.info = 'none',trace='none',col=color.pallete, breaks = color.breaks
+          ,dendrogram='none',Colv='NA',Rowv=FALSE,srtCol=45,key=FALSE
+          ,lwid=c(0.1,80), lhei=c(0.1,8) ,cexCol = 1.5,cexRow=1.5,offsetRow = 0
+          ,offsetCol = 0,margins=c(0,0),labRow = NULL,labCol = NULL
+          ,cellnote = map.list$TG3x$Month10$Eta,notecex = 1.0,notecol = 'black')
+```
+
+# 5xFAD
+
+## 4 Month
+```{r echo=FALSE}
+heatmap.2(as.matrix(map.list$TG5x$Month4$Eta)
+          ,density.info = 'none',trace='none',col=color.pallete, breaks = color.breaks
+          ,dendrogram='none',Colv='NA',Rowv=FALSE,srtCol=45,key=FALSE
+          ,lwid=c(0.1,80), lhei=c(0.1,8) ,cexCol = 1.5,cexRow=1.5,offsetRow = 0
+          ,offsetCol = 0,margins=c(0,0),labRow = NULL,labCol = NULL
+          ,cellnote = map.list$TG5x$Month4$Eta,notecex = 1.0,notecol = 'black')
+```
+
+## 7 Month
+```{r echo=FALSE}
+heatmap.2(as.matrix(map.list$TG5x$Month7$Eta)
+          ,density.info = 'none',trace='none',col=color.pallete, breaks = color.breaks
+          ,dendrogram='none',Colv='NA',Rowv=FALSE,srtCol=45,key=FALSE
+          ,lwid=c(0.1,80), lhei=c(0.1,8) ,cexCol = 1.5,cexRow=1.5,offsetRow = 0
+          ,offsetCol = 0,margins=c(0,0),labRow = NULL,labCol = NULL
+          ,cellnote = map.list$TG5x$Month7$Eta,notecex = 1.0,notecol = 'black')
+```
+
+## 10 Month
+```{r echo=FALSE}
+heatmap.2(as.matrix(map.list$TG5x$Month10$Eta)
+          ,density.info = 'none',trace='none',col=color.pallete, breaks = color.breaks
+          ,dendrogram='none',Colv='NA',Rowv=FALSE,srtCol=45,key=FALSE
+          ,lwid=c(0.1,80), lhei=c(0.1,8) ,cexCol = 1.5,cexRow=1.5,offsetRow = 0
+          ,offsetCol = 0,margins=c(0,0),labRow = NULL,labCol = NULL
+          ,cellnote = map.list$TG5x$Month10$Eta,notecex = 1.0,notecol = 'black')
+```
+
+# APP/PS1
+
+## 4 Month
+```{r echo=FALSE}
+heatmap.2(as.matrix(map.list$APP$Month4$Eta)
+          ,density.info = 'none',trace='none',col=color.pallete, breaks = color.breaks
+          ,dendrogram='none',Colv='NA',Rowv=FALSE,srtCol=45,key=FALSE
+          ,lwid=c(0.1,80), lhei=c(0.1,8) ,cexCol = 1.5,cexRow=1.5,offsetRow = 0
+          ,offsetCol = 0,margins=c(0,0),labRow = NULL,labCol = NULL
+          ,cellnote = map.list$APP$Month4$Eta,notecex = 1.0,notecol = 'black')
+```
+
+## 7 Month
+```{r echo=FALSE}
+heatmap.2(as.matrix(map.list$APP$Month7$Eta)
+          ,density.info = 'none',trace='none',col=color.pallete, breaks = color.breaks
+          ,dendrogram='none',Colv='NA',Rowv=FALSE,srtCol=45,key=FALSE
+          ,lwid=c(0.1,80), lhei=c(0.1,8) ,cexCol = 1.5,cexRow=1.5,offsetRow = 0
+          ,offsetCol = 0,margins=c(0,0),labRow = NULL,labCol = NULL
+          ,cellnote = map.list$APP$Month7$Eta,notecex = 1.0,notecol = 'black')
+```
+
+## 10 Month
+```{r echo=FALSE}
+heatmap.2(as.matrix(map.list$APP$Month10$Eta)
+          ,density.info = 'none',trace='none',col=color.pallete, breaks = color.breaks
+          ,dendrogram='none',Colv='NA',Rowv=FALSE,srtCol=45,key=FALSE
+          ,lwid=c(0.1,80), lhei=c(0.1,8) ,cexCol = 1.5,cexRow=1.5,offsetRow = 0
+          ,offsetCol = 0,margins=c(0,0),labRow = NULL,labCol = NULL
+          ,cellnote = map.list$APP$Month10$Eta,notecex = 1.0,notecol = 'black')
+```
+
