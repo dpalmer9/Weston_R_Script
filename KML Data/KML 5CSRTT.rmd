@@ -1,6 +1,21 @@
+---
+title: "KML Analysis 5CSRTT Longitudinal v2"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 ## Library ##
 library(kml3d)
 library(reshape2)
+library(ggplot2)
+
+library(gplots)
+library(RColorBrewer)
 
 ## Functions ##
 Data.Formatting.Function.5CSRTT = function(dataset){
@@ -76,15 +91,20 @@ graphing.data.cast.10m = graphing.data.cast[c(9:12,21:24,33:36), ]
 graphing.data.cast.10m$Time = dplyr::recode_factor(graphing.data.cast.10m$Time, '12'='0.6', '11'='0.8', '10'='1', '9'='1.5')
 graphing.data.cast.10m$Time = factor(graphing.data.cast.10m$Time,levels=graphing.data.cast.10m$Time[c(4,3,2,1)])
 
-ggplot(data=graphing.data.cast.4m,aes(x=graphing.data.cast.4m$Time,y=graphing.data.cast.4m$Accuracy,group=as.factor(graphing.data.cast.4m$Group.1))) + 
-  geom_line(aes(color=as.factor(graphing.data.cast.4m$Group.1))) + 
-  geom_point(aes(color=as.factor(graphing.data.cast.4m$Group.1))) +
-  scale_x_discrete(limits = rev(levels(graphing.data.cast.4m$Time)))
 
-ggplot(data=graphing.data.cast.7m,aes(x=as.factor(graphing.data.cast.7m$Time),y=graphing.data.cast.7m$Accuracy,group=as.factor(graphing.data.cast.7m$Group.1))) + 
-  geom_line(aes(color=as.factor(graphing.data.cast.7m$Group.1))) + 
-  geom_point(aes(color=as.factor(graphing.data.cast.7m$Group.1)))
+color.pallete = colorRampPalette(c('Green','Yellow','Red'))(n=99)
+color.breaks = c(seq(0,0.01,length=10),seq(0.011,0.249,length=45),seq(0.25,1,length=45))
 
-ggplot(data=graphing.data.cast.10m,aes(x=as.factor(graphing.data.cast.10m$Time),y=graphing.data.cast.10m$Accuracy,group=as.factor(graphing.data.cast.10m$Group.1))) + 
-  geom_line(aes(color=as.factor(graphing.data.cast.10m$Group.1))) + 
-  geom_point(aes(color=as.factor(graphing.data.cast.10m$Group.1)))
+count.data = plyr::count(combined.data, c('Cluster','Genotype'))
+```
+
+## Group Summary Data ##
+```{r}
+heatmap.2(as.matrix(map.list$TG3x$Month4$Eta)
+          ,density.info = 'none',trace='none',col=color.pallete, breaks = color.breaks
+          ,dendrogram='none',Colv='NA',Rowv=FALSE,srtCol=45,key=FALSE
+          ,lwid=c(0.1,80), lhei=c(0.1,8) ,cexCol = 1.5,cexRow=1.5,offsetRow = 0
+          ,offsetCol = 0,margins=c(0,0),labRow = NULL,labCol = NULL
+          ,cellnote = map.list$TG3x$Month4$Eta,notecex = 1.0,notecol = 'black')
+```
+
