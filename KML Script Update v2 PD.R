@@ -20,7 +20,8 @@ Data.Formatting.Function.PD = function(dataset){
 
 
 ## Read Data ##
-raw.data.probe = read.csv('C:\\Users\\dpalmer\\Documents\\Weston_R_Script\\Data\\Raw\\PD\\Weston PD Basline Reversal QC Oct 12 2017 Updated.csv')
+raw.data.path = file.choose()
+raw.data.probe = read.csv(raw.data.path)
 
 raw.data.probe = raw.data.probe[ ,c(3:9,11,17:18,49,81)]
 colnames(raw.data.probe) = c('Animal.ID','TestSite','MouseStrain','Genotype','Sex','Age','Task','Day','Corrections','Accuracy','CorrectLatency','RewardLatency')
@@ -71,6 +72,6 @@ graphing.melt.data$Time = day.vector
 graphing.data.cast = dcast(graphing.melt.data, Group.1 + Time ~ variable, fun.aggregate = mean, na.rm=TRUE)
 graphing.data.cast = graphing.data.cast[order(graphing.data.cast$Group.1,as.numeric(graphing.data.cast$Time)), ]
 
-ggplot(data=graphing.data.cast,aes(x=as.character(graphing.data.cast$Time),y=graphing.data.cast$Corrections,group=as.factor(graphing.data.cast$Group.1))) + 
+ggplot(data=graphing.data.cast,aes(x=as.character(graphing.data.cast$Time),y=graphing.data.cast$Accuracy,group=as.factor(graphing.data.cast$Group.1))) + 
   geom_line(aes(color=as.factor(graphing.data.cast$Group.1))) + 
   geom_point(aes(color=as.factor(graphing.data.cast$Group.1)))

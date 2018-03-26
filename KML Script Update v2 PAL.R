@@ -18,7 +18,8 @@ Data.Formatting.Function.PAL = function(dataset){
 
 
 ## Read Data ##
-raw.data.probe = read.csv('C:\\Users\\dpalmer\\Documents\\Weston_R_Script\\Data\\Raw\\PAL\\Weston PAL Main Task Aggregated Oct 12 2017 Updated.csv')
+raw.data.path = file.choose()
+raw.data.probe = read.csv(raw.data.path)
 
 raw.data.probe = raw.data.probe[ ,c(2:7,10,15:16,239,315)]
 colnames(raw.data.probe) = c('Animal.ID','TestSite','MouseStrain','Genotype','Sex','Age','Week','Corrections','Accuracy','CorrectLatency','RewardLatency')
