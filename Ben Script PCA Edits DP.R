@@ -13,7 +13,7 @@ Data_file_5C= read.csv('C:\\Users\\dpalmer\\Documents\\Weston_R_Script\\Data\\Ra
 Data_PD = Data_file_PD[which((Data_file_PD$Task == 'PD Reversal 1') |(Data_file_PD$Task == 'PD Reversal 2') | (Data_file_PD$Task == 'PD Reversal 3')), ]
 Data_PD = Data_PD[ ,c(3,4,5,6,7,8,9,11,18,17,49,81)]
 Data_PD$No.Correction.Trials[is.na(Data_PD$No.Correction.Trials)] = 0
-colnames(Data_PD) = c('Animal.ID','Test Site', 'Mouse.Strain','Genotype', 'Sex','Age','Task','Day','Accuracy','Corrections','Correct Latency','Reward Latency')
+colnames(Data_PD) = c('Animal.ID','Test Site', 'Mouse.Strain','Genotype', 'Sex','Age','Task','Day','% Correct','Number of Corrections','Correct Touch Latency (sec)','Reward Collection Latency (sec)')
 Data_PD =na.omit(Data_PD)
 Data_PD$Age = as.factor(Data_PD$Age)
 data.cols.pd <- Data_PD[c(10, 9, 11, 12)]
@@ -23,14 +23,17 @@ fviz_pca_var(res.pca.pd,
              col.var = "contrib", # Color by contributions to the PC
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE,     # Avoid text overlapping
-             title = ''
+             title = '',
+             col.circle = 'black',
+             ticks = FALSE,
+             axes.linetype = 'solid'
 )
 
 
 #PAL
 
 Data_PAL = Data_file_PAL[, c(2,4,5,6,7,8,10,16,15,239,315)]
-colnames(Data_PAL) = c('Animal.ID', 'Mouse.Strain','Genotype', 'Sex','Age','Task','Week','Accuracy','Corrections','Correct Latency','Reward Latency')
+colnames(Data_PAL) = c('Animal.ID','Test Site', 'Mouse.Strain','Genotype', 'Sex','Age','Task','Day','% Correct','Number of Corrections','Correct Touch Latency (sec)','Reward Collection Latency (sec)')
 Data_PAL$Age = as.factor(Data_PAL$Age)
 Data_PAL = na.omit(Data_PAL)
 data.cols.pal <- Data_PAL[c(8,9,10,11)]
@@ -41,14 +44,17 @@ fviz_pca_var(res.pca.pal,
              col.var = "contrib", # Color by contributions to the PC
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE,     # Avoid text overlapping
-             title = ''
+             title = '',
+             col.circle = 'black',
+             ticks = FALSE,
+             axes.linetype = 'solid'
 )
 
 
 #5C
 
 Data_5C = Data_file_5C[ ,c(3,4,5,6,7,8,9,16,17,18,19,122,70)]
-colnames(Data_5C) = c('Animal.ID','TestSite' ,'Mouse.Strain','Genotype', 'Sex','Age','StimulusDuration','Accuracy','Omissions','Premature','Perseverative','Correct Latency','Reward Latency')
+colnames(Data_5C) = c('Animal.ID','TestSite' ,'Mouse.Strain','Genotype', 'Sex','Age','StimulusDuration','% Correct','% Omissions','Premature Responses','Perseverative Responses','Correct Touch Latency (sec)','Reward Collection Latency (sec)')
 
 Data_5C = na.omit(Data_5C)
 
@@ -60,6 +66,9 @@ fviz_pca_var(res.pca.5c,
              col.var = "contrib", # Color by contributions to the PC
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE,     # Avoid text overlapping
-             title = ''
+             title = '',
+             col.circle = 'black',
+             ticks = FALSE,
+             axes.linetype = 'solid'
 )
-rm(list=ls(all=TRUE))
+

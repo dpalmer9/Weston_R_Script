@@ -20,6 +20,48 @@ Data.Formatting.Function.5CSRTT = function(dataset){
   return(cast.data)
 }
 
+Fisher.Analysis.Function = function(dataset){
+  strain.list = list(c('B6129SF2/J','3xTG-AD'),c('B6SJLF1/J','5xFAD'),c('C57BL6','APPPS1'))
+  sex.list = as.vector(unique(dataset$Sex))
+  age.list = sort(as.vector(unique(as.numeric(as.character(dataset$Age)))))
+  fisher.table = as.data.frame(matrix(nrow=3,ncol=3))
+  colnames(fisher.table) = c('3xTG','5xFAD','APP/PS1')
+  rownames(fisher.table) = c('4Months', '7 Months', '10 Months')
+  fisher.table.female = fisher.table
+  fisher.table.male = fisher.table
+
+  for(a in 1:length(strain.list)){
+    for(b in 1:length(sex.list)){
+      for(c in 1:length(age.list)){
+        test.data = dataset[which(((dataset$Strain == strain.list[[a]][1]) | (dataset$Strain == strain.list[[a]][2])) & (dataset$Sex == sex.list[b]) & (dataset$Age == age.list[c])), ]
+        test.cont.data = as.data.frame(matrix(nrow=2,ncol=3))
+        colnames(test.cont.data) = c('High', 'Mid', 'Low')
+        rownames(test.cont.data) = c(strain.list[[a]][1], strain.list[[a]][2])
+        for(d in 1:2){
+          for(e in 1:3){
+            if(isTRUE(length(test.data[which((test.data$Strain == rownames(test.cont.data)[d]) & (test.data$Cluster == colnames(test.cont.data)[e])), 5]) == 0)){
+              test.cont.data[d,e] = 0
+            }else{
+              test.cont.data[d,e] = test.data[which((test.data$Strain == rownames(test.cont.data)[d]) & (test.data$Cluster == colnames(test.cont.data)[e])), 5] 
+            }
+          }
+        }
+        test.cont.data[is.na(test.cont.data)] = 0
+        fisher.result = fisher.test(test.cont.data)
+        
+        if(sex.list[b] == 'Female'){
+        fisher.table.female[c,a] = fisher.result$p.value
+        }
+        if(sex.list[b] == 'Male')
+        fisher.table.male[c,a] = fisher.result$p.value
+      }
+    }
+  }
+  fisher.list= list()
+  fisher.list$Female = fisher.table.female
+  fisher.list$Male = fisher.table.male
+  return(fisher.list)
+}
 
 ## Read Data ##
 raw.data.path = file.choose()
@@ -62,6 +104,15 @@ count.data$Count = 1
 count.data = aggregate(count.data$Count,by=list(count.data$Cluster,count.data$Genotype,count.data$Sex,count.data$Age),FUN=sum, na.rm=TRUE)
 colnames(count.data) = c('Cluster','Strain','Sex','Age','Count')
 count.data$Cluster = recode(count.data$Cluster,'A' = 'Mid','B' = 'Low', 'C' = 'High')
+
+fisher.data = Fisher.Analysis.Function(count.data)
+
+heatmap.2(as.matrix(fisher.data$Male)
+          ,density.info = 'none',trace='none',col=color.pallete, breaks = color.breaks
+          ,dendrogram='none',Colv='NA',Rowv=FALSE,srtCol=45,key=FALSE
+          ,lwid=c(0.1,80), lhei=c(0.1,8) ,cexCol = 1.5,cexRow=1.5,offsetRow = 0
+          ,offsetCol = 0,margins=c(0,0),labRow = NULL,labCol = NULL
+          ,cellnote = format(round(fisher.data$Male,digits=2), nsmall=2),notecex = 2.0,notecol = 'black')
 ## Visualize
 graphing.data.mean = aggregate(combined.data[ ,7:30],by=list(combined.data$Cluster), FUN=mean, na.rm=TRUE)
 
